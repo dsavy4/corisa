@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "deploy": "wrangler pages deploy dist"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=corisa-ai",
+    "deploy:local": "./deploy-local.sh"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.0.4",
