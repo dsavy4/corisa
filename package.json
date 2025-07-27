@@ -11,7 +11,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=corisa-ai",
-    "deploy:local": "./deploy-local.sh"
+    "deploy:local": "./deploy-local.sh",
+    "pages:deploy": "wrangler pages deploy dist"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.0.4",

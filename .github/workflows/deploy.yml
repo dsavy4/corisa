@@ -34,3 +34,4 @@ jobs:
           projectName: corisa-ai
           directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: npm run build
