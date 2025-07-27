@@ -8,16 +8,28 @@ import {
   SchemaSummary,
   YAMLEditorState
 } from '../types/corisa';
+import { 
+  ContextFile, 
+  ProjectContext, 
+  ContextFileType,
+  CONTEXT_FILE_TEMPLATES 
+} from '../types/context';
 import { generateYAMLFromPrompt, generateCodeFromSchema } from '../lib/ai-engine';
 
 interface CorisaStore {
   // State
   schema: CorisaSchema;
   chatHistory: ChatMessage[];
-  currentView: 'chat' | 'yaml' | 'code' | 'preview';
+  currentView: 'chat' | 'yaml' | 'code' | 'preview' | 'context';
   isLoading: boolean;
   error: string | null;
   yamlEditor: YAMLEditorState;
+  
+  // New Context Management
+  currentProject: ProjectContext | null;
+  contextFiles: ContextFile[];
+  selectedContextFile: ContextFile | null;
+  isProjectLoaded: boolean;
 
   // Actions
   initializeSchema: () => void;
@@ -25,7 +37,7 @@ interface CorisaStore {
   processPrompt: (prompt: string) => Promise<void>;
   generateCode: (request: any) => Promise<CodeGenerationResult>;
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-  setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview') => void;
+  setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview' | 'context') => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   updateYAMLEditor: (content: string) => void;
@@ -35,6 +47,19 @@ interface CorisaStore {
   exportSchema: () => string;
   importSchema: (yamlContent: string) => void;
   resetSchema: () => void;
+
+  // Context File Actions
+  createNewProject: (name: string, description: string, source: 'import' | 'new') => void;
+  importProject: (files: FileList) => Promise<void>;
+  addContextFile: (type: ContextFileType, name?: string) => void;
+  updateContextFile: (id: string, updates: Partial<ContextFile>) => void;
+  deleteContextFile: (id: string) => void;
+  selectContextFile: (id: string) => void;
+  reorderContextFiles: (fileIds: string[]) => void;
+  generateContextFileContent: (fileId: string, prompt: string) => Promise<void>;
+  exportContextFiles: () => string;
+  importContextFiles: (content: string) => void;
+  getContextForAI: () => string;
 }
 
 const createInitialSchema = (): CorisaSchema => ({
@@ -118,6 +143,12 @@ export const useCorisaStore = create<CorisaStore>()(
           lastSaved: new Date(),
           isDirty: false
         },
+
+        // New Context Management
+        currentProject: null,
+        contextFiles: [],
+        selectedContextFile: null,
+        isProjectLoaded: false,
 
         // Actions
         initializeSchema: () => {
@@ -203,7 +234,7 @@ export const useCorisaStore = create<CorisaStore>()(
           }));
         },
 
-        setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview') => {
+        setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview' | 'context') => {
           set({ currentView: view });
         },
 
@@ -293,6 +324,162 @@ export const useCorisaStore = create<CorisaStore>()(
             chatHistory: [],
             error: null
           });
+        },
+
+        // Context File Actions
+        createNewProject: (name: string, description: string, source: 'import' | 'new') => {
+          const newProject: ProjectContext = {
+            id: Date.now().toString(),
+            name,
+            description,
+            files: [],
+            createdAt: new Date(),
+            lastModified: new Date(),
+            metadata: {
+              source,
+              tags: []
+            }
+          };
+          set({ 
+            currentProject: newProject,
+            contextFiles: [],
+            selectedContextFile: null,
+            isProjectLoaded: true
+          });
+        },
+
+        importProject: async (files: FileList) => {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            if (event.target?.result) {
+              try {
+                const parsedContextFiles = JSON.parse(event.target.result as string);
+                set({ 
+                  contextFiles: parsedContextFiles,
+                  selectedContextFile: parsedContextFiles[0] || null,
+                  isProjectLoaded: true
+                });
+              } catch (error) {
+                set({ error: 'Failed to import project: ' + String(error) });
+              }
+            }
+          };
+          reader.readAsText(files[0]);
+        },
+
+        addContextFile: (type: ContextFileType, name?: string) => {
+          const template = CONTEXT_FILE_TEMPLATES[type];
+          const newFile: ContextFile = {
+            id: Date.now().toString(),
+            type,
+            name: name || template.displayName,
+            displayName: template.displayName,
+            description: template.description,
+            content: template.defaultContent,
+            order: get().contextFiles.length,
+            lastModified: new Date(),
+            isDirty: false
+          };
+          set(state => ({ 
+            contextFiles: [...state.contextFiles, newFile],
+            selectedContextFile: newFile
+          }));
+        },
+
+        updateContextFile: (id: string, updates: Partial<ContextFile>) => {
+          set(state => ({
+            contextFiles: state.contextFiles.map(file => 
+              file.id === id ? { ...file, ...updates, lastModified: new Date(), isDirty: true } : file
+            )
+          }));
+          if (get().selectedContextFile?.id === id) {
+            set(state => ({
+              selectedContextFile: state.selectedContextFile ? 
+                { ...state.selectedContextFile, ...updates, lastModified: new Date(), isDirty: true } : null
+            }));
+          }
+        },
+
+        deleteContextFile: (id: string) => {
+          set(state => ({
+            contextFiles: state.contextFiles.filter(file => file.id !== id),
+            selectedContextFile: state.selectedContextFile?.id === id ? null : state.selectedContextFile
+          }));
+        },
+
+        selectContextFile: (id: string) => {
+          const file = get().contextFiles.find(file => file.id === id);
+          set({ selectedContextFile: file || null });
+        },
+
+        reorderContextFiles: (fileIds: string[]) => {
+          set(state => ({
+            contextFiles: state.contextFiles.map((file, index) => ({
+              ...file,
+              order: fileIds.indexOf(file.id)
+            })).sort((a, b) => a.order - b.order)
+          }));
+        },
+
+        generateContextFileContent: async (fileId: string, prompt: string) => {
+          const file = get().contextFiles.find(f => f.id === fileId);
+          if (!file) return;
+
+          try {
+            set({ isLoading: true });
+            const result = await generateYAMLFromPrompt(prompt, get().schema);
+            
+            if (result.success) {
+              set(state => ({
+                contextFiles: state.contextFiles.map(f => 
+                  f.id === fileId ? { ...f, content: result.explanation, lastModified: new Date(), isDirty: true } : f
+                )
+              }));
+              
+              if (get().selectedContextFile?.id === fileId) {
+                set(state => ({
+                  selectedContextFile: state.selectedContextFile ? 
+                    { ...state.selectedContextFile, content: result.explanation, lastModified: new Date(), isDirty: true } : null
+                }));
+              }
+            } else {
+              set({ error: 'Failed to generate content: ' + result.explanation });
+            }
+          } catch (error) {
+            set({ error: 'Failed to generate content: ' + String(error) });
+          } finally {
+            set({ isLoading: false });
+          }
+        },
+
+        exportContextFiles: () => {
+          const { contextFiles } = get();
+          return JSON.stringify(contextFiles, null, 2);
+        },
+
+        importContextFiles: (content: string) => {
+          try {
+            const parsedContextFiles = JSON.parse(content);
+            set({ 
+              contextFiles: parsedContextFiles,
+              selectedContextFile: parsedContextFiles[0] || null,
+              isProjectLoaded: true
+            });
+          } catch (error) {
+            set({ error: 'Failed to import context files: ' + String(error) });
+          }
+        },
+
+        getContextForAI: () => {
+          const { contextFiles } = get();
+          if (contextFiles.length === 0) return '';
+
+          const context = contextFiles.map(file => ({
+            name: file.displayName,
+            description: file.description,
+            content: file.content
+          }));
+          return JSON.stringify(context, null, 2);
         }
       }),
       { 
