@@ -12,7 +12,10 @@ import {
   Code, 
   Brain,
   Upload,
-  Download
+  Download,
+  Lightbulb,
+  Target,
+  Settings
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
@@ -20,8 +23,8 @@ export default function Onboarding() {
   const { 
     createNewProject, 
     importProject, 
-    exportContextFiles, 
-    importContextFiles,
+    exportInsightFiles, 
+    importInsightFiles,
     isProjectLoaded 
   } = useCorisaStore();
 
@@ -48,25 +51,39 @@ export default function Onboarding() {
     const template = [
       {
         id: '1',
-        type: 'setup.context' as const,
-        name: 'Project Setup',
-        displayName: 'Project Setup',
-        description: 'Initial project configuration and environment setup',
-        content: CONTEXT_FILE_TEMPLATES['setup.context'].defaultContent,
+        type: 'project-overview' as const,
+        name: 'Project Overview',
+        displayName: 'Project Overview',
+        description: 'High-level project description, goals, and vision',
+        content: INSIGHT_TEMPLATES['project-overview'].defaultContent,
         order: 0,
         lastModified: new Date(),
-        isDirty: false
+        isDirty: false,
+        metadata: {
+          category: 'project',
+          priority: 'high',
+          tags: ['overview', 'goals', 'vision'],
+          relatedFiles: []
+        },
+        aiReferences: []
       },
       {
         id: '2',
-        type: 'goals.plan' as const,
-        name: 'Business Goals',
-        displayName: 'Business Goals',
-        description: 'Project objectives, features, and success metrics',
-        content: CONTEXT_FILE_TEMPLATES['goals.plan'].defaultContent,
+        type: 'features-spec' as const,
+        name: 'Features Specification',
+        displayName: 'Features Specification',
+        description: 'Detailed feature requirements and specifications',
+        content: INSIGHT_TEMPLATES['features-spec'].defaultContent,
         order: 1,
         lastModified: new Date(),
-        isDirty: false
+        isDirty: false,
+        metadata: {
+          category: 'business',
+          priority: 'high',
+          tags: ['features', 'requirements', 'specs'],
+          relatedFiles: []
+        },
+        aiReferences: []
       }
     ];
 
@@ -74,7 +91,7 @@ export default function Onboarding() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'corisa-project-template.json';
+    a.download = 'corisa-insights-template.json';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -101,10 +118,26 @@ export default function Onboarding() {
               </div>
             </div>
             
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-3xl mx-auto space-y-4">
               <p className="text-xl text-white/90 leading-relaxed">
-                Import an existing project or describe your goal to begin. The app will generate and organize intelligent config files that guide the AI to help you build faster.
+                Bridge the communication gap between humans and AI with structured, persistent context. 
+                Create Insight Files that act as the evolving mind of your project — providing deep, 
+                rich background for AI to work more intelligently.
               </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-white/70">
+                <div className="flex items-center space-x-2">
+                  <Lightbulb className="w-4 h-4" />
+                  <span>AI never guesses — it reads from your insights first</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Target className="w-4 h-4" />
+                  <span>Structured context that evolves with your project</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Settings className="w-4 h-4" />
+                  <span>Transparent AI reasoning and suggestions</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -118,7 +151,7 @@ export default function Onboarding() {
                   <span>Start New Project</span>
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  Describe what you want to build and let AI generate the perfect configuration
+                  Describe your project vision and let AI scaffold intelligent Insight Files
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -175,22 +208,22 @@ export default function Onboarding() {
                   <span>Import Project</span>
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  Import an existing project folder or configuration files
+                  Import existing codebase and generate Insight Files from your project
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2 text-sm text-white/70">
                     <FileText className="w-4 h-4" />
-                    <span>Project configuration files</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-white/70">
-                    <Code className="w-4 h-4" />
                     <span>Source code analysis</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-white/70">
+                    <Code className="w-4 h-4" />
+                    <span>Insight File generation</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-white/70">
                     <Brain className="w-4 h-4" />
-                    <span>AI context generation</span>
+                    <span>AI context understanding</span>
                   </div>
                 </div>
 
@@ -236,19 +269,19 @@ export default function Onboarding() {
           {/* Features Preview */}
           <div className="grid md:grid-cols-3 gap-4 mt-8">
             <div className="text-center p-4 rounded-lg bg-white/5 border border-white/10">
-              <Brain className="w-8 h-8 mx-auto mb-2 text-purple-400" />
-              <h3 className="font-semibold text-white mb-1">AI-Powered</h3>
-              <p className="text-sm text-white/60">Intelligent code generation and analysis</p>
+              <Lightbulb className="w-8 h-8 mx-auto mb-2 text-purple-400" />
+              <h3 className="font-semibold text-white mb-1">Insight-Driven</h3>
+              <p className="text-sm text-white/60">AI reads from structured project insights</p>
             </div>
             <div className="text-center p-4 rounded-lg bg-white/5 border border-white/10">
-              <FileText className="w-8 h-8 mx-auto mb-2 text-purple-400" />
-              <h3 className="font-semibold text-white mb-1">Context Aware</h3>
-              <p className="text-sm text-white/60">Smart configuration management</p>
+              <Target className="w-8 h-8 mx-auto mb-2 text-purple-400" />
+              <h3 className="font-semibold text-white mb-1">Transparent AI</h3>
+              <p className="text-sm text-white/60">See exactly what context AI is using</p>
             </div>
             <div className="text-center p-4 rounded-lg bg-white/5 border border-white/10">
-              <Code className="w-8 h-8 mx-auto mb-2 text-purple-400" />
-              <h3 className="font-semibold text-white mb-1">Developer Focused</h3>
-              <p className="text-sm text-white/60">Built for modern development workflows</p>
+              <Settings className="w-8 h-8 mx-auto mb-2 text-purple-400" />
+              <h3 className="font-semibold text-white mb-1">Evolving Context</h3>
+              <p className="text-sm text-white/60">Insights grow with your project</p>
             </div>
           </div>
         </div>
@@ -258,4 +291,4 @@ export default function Onboarding() {
 }
 
 // Import the templates
-import { CONTEXT_FILE_TEMPLATES } from '../types/context';
+import { INSIGHT_TEMPLATES } from '../types/insights';

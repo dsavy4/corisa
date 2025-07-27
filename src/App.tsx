@@ -4,8 +4,8 @@ import { ThemeProvider } from './components/ThemeProvider';
 import Header from './components/Header';
 import Onboarding from './components/Onboarding';
 import ChatInterface from './components/ChatInterface';
-import ContextSidebar from './components/ContextSidebar';
-import ContextEditor from './components/ContextEditor';
+import InsightSidebar from './components/InsightSidebar';
+import InsightEditor from './components/InsightEditor';
 import YAMLEditor from './components/YAMLEditor';
 import CodeGenerator from './components/CodeGenerator';
 import SchemaSummary from './components/SchemaSummary';
@@ -34,8 +34,8 @@ function App() {
       case 'context':
         return (
           <div className="flex h-full">
-            <ContextSidebar />
-            <ContextEditor />
+            <InsightSidebar />
+            <InsightEditor />
           </div>
         );
       case 'yaml':

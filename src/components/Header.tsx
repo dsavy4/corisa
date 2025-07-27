@@ -44,7 +44,7 @@ export default function Header() {
 
   const tabs = [
     { id: 'chat', label: 'AI Chat', icon: Brain },
-    { id: 'context', label: 'Context Files', icon: FolderOpen },
+    { id: 'context', label: 'Insight Files', icon: FolderOpen },
     { id: 'yaml', label: 'YAML Editor', icon: FileText },
     { id: 'code', label: 'Code Generator', icon: Code },
     { id: 'preview', label: 'Schema Preview', icon: Eye },

@@ -9,11 +9,13 @@ import {
   YAMLEditorState
 } from '../types/corisa';
 import { 
-  ContextFile, 
-  ProjectContext, 
-  ContextFileType,
-  CONTEXT_FILE_TEMPLATES 
-} from '../types/context';
+  InsightFile, 
+  ProjectInsights, 
+  InsightFileType,
+  INSIGHT_TEMPLATES,
+  AIInsightReference,
+  AIGenerationContext
+} from '../types/insights';
 import { generateYAMLFromPrompt, generateCodeFromSchema } from '../lib/ai-engine';
 
 interface CorisaStore {
@@ -25,11 +27,12 @@ interface CorisaStore {
   error: string | null;
   yamlEditor: YAMLEditorState;
   
-  // New Context Management
-  currentProject: ProjectContext | null;
-  contextFiles: ContextFile[];
-  selectedContextFile: ContextFile | null;
+  // Insight Management
+  currentProject: ProjectInsights | null;
+  insightFiles: InsightFile[];
+  selectedInsightFile: InsightFile | null;
   isProjectLoaded: boolean;
+  aiGenerationContext: AIGenerationContext | null;
 
   // Actions
   initializeSchema: () => void;
@@ -48,18 +51,19 @@ interface CorisaStore {
   importSchema: (yamlContent: string) => void;
   resetSchema: () => void;
 
-  // Context File Actions
+  // Insight File Actions
   createNewProject: (name: string, description: string, source: 'import' | 'new') => void;
   importProject: (files: FileList) => Promise<void>;
-  addContextFile: (type: ContextFileType, name?: string) => void;
-  updateContextFile: (id: string, updates: Partial<ContextFile>) => void;
-  deleteContextFile: (id: string) => void;
-  selectContextFile: (id: string) => void;
-  reorderContextFiles: (fileIds: string[]) => void;
-  generateContextFileContent: (fileId: string, prompt: string) => Promise<void>;
-  exportContextFiles: () => string;
-  importContextFiles: (content: string) => void;
-  getContextForAI: () => string;
+  addInsightFile: (type: InsightFileType, name?: string) => void;
+  updateInsightFile: (id: string, updates: Partial<InsightFile>) => void;
+  deleteInsightFile: (id: string) => void;
+  selectInsightFile: (id: string) => void;
+  reorderInsightFiles: (fileIds: string[]) => void;
+  generateInsightFileContent: (fileId: string, prompt: string) => Promise<void>;
+  exportInsightFiles: () => string;
+  importInsightFiles: (content: string) => void;
+  getInsightsForAI: () => string;
+  analyzeAIContext: (prompt: string) => AIGenerationContext;
 }
 
 const createInitialSchema = (): CorisaSchema => ({
@@ -144,11 +148,12 @@ export const useCorisaStore = create<CorisaStore>()(
           isDirty: false
         },
 
-        // New Context Management
+        // Insight Management
         currentProject: null,
-        contextFiles: [],
-        selectedContextFile: null,
+        insightFiles: [],
+        selectedInsightFile: null,
         isProjectLoaded: false,
+        aiGenerationContext: null,
 
         // Actions
         initializeSchema: () => {
@@ -326,9 +331,9 @@ export const useCorisaStore = create<CorisaStore>()(
           });
         },
 
-        // Context File Actions
+        // Insight File Actions
         createNewProject: (name: string, description: string, source: 'import' | 'new') => {
-          const newProject: ProjectContext = {
+          const newProject: ProjectInsights = {
             id: Date.now().toString(),
             name,
             description,
@@ -337,13 +342,14 @@ export const useCorisaStore = create<CorisaStore>()(
             lastModified: new Date(),
             metadata: {
               source,
-              tags: []
+              tags: [],
+              aiContext: ''
             }
           };
           set({ 
             currentProject: newProject,
-            contextFiles: [],
-            selectedContextFile: null,
+            insightFiles: [],
+            selectedInsightFile: null,
             isProjectLoaded: true
           });
         },
@@ -353,10 +359,10 @@ export const useCorisaStore = create<CorisaStore>()(
           reader.onload = async (event) => {
             if (event.target?.result) {
               try {
-                const parsedContextFiles = JSON.parse(event.target.result as string);
+                const parsedInsightFiles = JSON.parse(event.target.result as string);
                 set({ 
-                  contextFiles: parsedContextFiles,
-                  selectedContextFile: parsedContextFiles[0] || null,
+                  insightFiles: parsedInsightFiles,
+                  selectedInsightFile: parsedInsightFiles[0] || null,
                   isProjectLoaded: true
                 });
               } catch (error) {
@@ -367,62 +373,69 @@ export const useCorisaStore = create<CorisaStore>()(
           reader.readAsText(files[0]);
         },
 
-        addContextFile: (type: ContextFileType, name?: string) => {
-          const template = CONTEXT_FILE_TEMPLATES[type];
-          const newFile: ContextFile = {
+        addInsightFile: (type: InsightFileType, name?: string) => {
+          const template = INSIGHT_TEMPLATES[type];
+          const newFile: InsightFile = {
             id: Date.now().toString(),
             type,
             name: name || template.displayName,
             displayName: template.displayName,
             description: template.description,
             content: template.defaultContent,
-            order: get().contextFiles.length,
+            order: get().insightFiles.length,
             lastModified: new Date(),
-            isDirty: false
+            isDirty: false,
+            metadata: {
+              category: template.category,
+              priority: template.priority,
+              tags: template.suggestedTags,
+              relatedFiles: []
+            },
+            aiReferences: []
           };
           set(state => ({ 
-            contextFiles: [...state.contextFiles, newFile],
-            selectedContextFile: newFile
+            insightFiles: [...state.insightFiles, newFile],
+            selectedInsightFile: newFile
           }));
         },
 
-        updateContextFile: (id: string, updates: Partial<ContextFile>) => {
+        updateInsightFile: (id: string, updates: Partial<InsightFile>) => {
           set(state => ({
-            contextFiles: state.contextFiles.map(file => 
+            insightFiles: state.insightFiles.map(file => 
               file.id === id ? { ...file, ...updates, lastModified: new Date(), isDirty: true } : file
             )
           }));
-          if (get().selectedContextFile?.id === id) {
+          if (get().selectedInsightFile?.id === id) {
             set(state => ({
-              selectedContextFile: state.selectedContextFile ? 
-                { ...state.selectedContextFile, ...updates, lastModified: new Date(), isDirty: true } : null
+              selectedInsightFile: state.selectedInsightFile ? 
+                { ...state.selectedInsightFile, ...updates, lastModified: new Date(), isDirty: true } : null
             }));
           }
         },
 
-        deleteContextFile: (id: string) => {
+        deleteInsightFile: (id: string) => {
           set(state => ({
-            contextFiles: state.contextFiles.filter(file => file.id !== id),
-            selectedContextFile: state.selectedContextFile?.id === id ? null : state.selectedContextFile
+            insightFiles: state.insightFiles.filter(file => file.id !== id),
+            selectedInsightFile: state.selectedInsightFile?.id === id ? null : state.selectedInsightFile
           }));
         },
 
-        selectContextFile: (id: string) => {
-          const file = get().contextFiles.find(file => file.id === id);
-          set({ selectedContextFile: file || null });
+        selectInsightFile: (id: string) => {
+          const file = get().insightFiles.find(file => file.id === id);
+          set({ selectedInsightFile: file || null });
         },
 
-        reorderContextFiles: (fileIds: string[]) => {
+        reorderInsightFiles: (fileIds: string[]) => {
           set(state => ({
-            contextFiles: state.contextFiles.map((file, index) => ({
+            insightFiles: state.insightFiles.map((file, index) => ({
               ...file,
               order: fileIds.indexOf(file.id)
             })).sort((a, b) => a.order - b.order)
           }));
         },
 
-        generateContextFileContent: async (fileId: string, prompt: string) => {
-          const file = get().contextFiles.find(f => f.id === fileId);
+        generateInsightFileContent: async (fileId: string, prompt: string) => {
+          const file = get().insightFiles.find(f => f.id === fileId);
           if (!file) return;
 
           try {
@@ -431,15 +444,15 @@ export const useCorisaStore = create<CorisaStore>()(
             
             if (result.success) {
               set(state => ({
-                contextFiles: state.contextFiles.map(f => 
+                insightFiles: state.insightFiles.map(f => 
                   f.id === fileId ? { ...f, content: result.explanation, lastModified: new Date(), isDirty: true } : f
                 )
               }));
               
-              if (get().selectedContextFile?.id === fileId) {
+              if (get().selectedInsightFile?.id === fileId) {
                 set(state => ({
-                  selectedContextFile: state.selectedContextFile ? 
-                    { ...state.selectedContextFile, content: result.explanation, lastModified: new Date(), isDirty: true } : null
+                  selectedInsightFile: state.selectedInsightFile ? 
+                    { ...state.selectedInsightFile, content: result.explanation, lastModified: new Date(), isDirty: true } : null
                 }));
               }
             } else {
@@ -452,34 +465,90 @@ export const useCorisaStore = create<CorisaStore>()(
           }
         },
 
-        exportContextFiles: () => {
-          const { contextFiles } = get();
-          return JSON.stringify(contextFiles, null, 2);
+        exportInsightFiles: () => {
+          const { insightFiles } = get();
+          return JSON.stringify(insightFiles, null, 2);
         },
 
-        importContextFiles: (content: string) => {
+        importInsightFiles: (content: string) => {
           try {
-            const parsedContextFiles = JSON.parse(content);
+            const parsedInsightFiles = JSON.parse(content);
             set({ 
-              contextFiles: parsedContextFiles,
-              selectedContextFile: parsedContextFiles[0] || null,
+              insightFiles: parsedInsightFiles,
+              selectedInsightFile: parsedInsightFiles[0] || null,
               isProjectLoaded: true
             });
           } catch (error) {
-            set({ error: 'Failed to import context files: ' + String(error) });
+            set({ error: 'Failed to import insight files: ' + String(error) });
           }
         },
 
-        getContextForAI: () => {
-          const { contextFiles } = get();
-          if (contextFiles.length === 0) return '';
+        getInsightsForAI: () => {
+          const { insightFiles } = get();
+          if (insightFiles.length === 0) return '';
 
-          const context = contextFiles.map(file => ({
+          const context = insightFiles.map(file => ({
             name: file.displayName,
             description: file.description,
-            content: file.content
+            content: file.content,
+            category: file.metadata.category,
+            priority: file.metadata.priority
           }));
           return JSON.stringify(context, null, 2);
+        },
+
+        analyzeAIContext: (prompt: string) => {
+          const { insightFiles } = get();
+          const referencedInsights: AIInsightReference[] = [];
+          const missingInsights: string[] = [];
+
+          // Simple keyword matching to find relevant insights
+          const promptLower = prompt.toLowerCase();
+          
+          insightFiles.forEach(file => {
+            const contentLower = file.content.toLowerCase();
+            const nameLower = file.displayName.toLowerCase();
+            
+            // Check if insight is relevant based on content and name
+            const relevance = 
+              contentLower.includes(promptLower) || 
+              nameLower.includes(promptLower) ? 'high' :
+              contentLower.includes(promptLower.split(' ')[0]) ? 'medium' : 'low';
+            
+            if (relevance !== 'low') {
+              referencedInsights.push({
+                insightId: file.id,
+                insightName: file.displayName,
+                relevance,
+                context: `Relevant content from ${file.displayName}`
+              });
+            }
+          });
+
+          // Suggest missing insights based on prompt
+          if (promptLower.includes('login') || promptLower.includes('auth')) {
+            if (!insightFiles.find(f => f.type === 'features-spec')) {
+              missingInsights.push('Features Specification');
+            }
+          }
+          if (promptLower.includes('api') || promptLower.includes('endpoint')) {
+            if (!insightFiles.find(f => f.type === 'api-specification')) {
+              missingInsights.push('API Specification');
+            }
+          }
+
+          const contextSummary = referencedInsights.length > 0 
+            ? `Using ${referencedInsights.length} insight files for context`
+            : 'No relevant insights found';
+
+          const aiContext: AIGenerationContext = {
+            referencedInsights,
+            missingInsights,
+            contextSummary
+          };
+
+          set({ aiGenerationContext: aiContext });
+          return aiContext;
         }
       }),
       { 

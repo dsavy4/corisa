@@ -12,40 +12,42 @@ import {
   MoreVertical,
   Save,
   Download,
-  Upload
+  Upload,
+  Filter
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { CONTEXT_FILE_TEMPLATES, ContextFileType } from '../types/context';
+import { INSIGHT_TEMPLATES, InsightFileType } from '../types/insights';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 
-export default function ContextSidebar() {
+export default function InsightSidebar() {
   const { 
-    contextFiles, 
-    selectedContextFile, 
-    addContextFile, 
-    selectContextFile, 
-    deleteContextFile,
-    generateContextFileContent,
-    exportContextFiles,
-    importContextFiles,
-    reorderContextFiles
+    insightFiles, 
+    selectedInsightFile, 
+    addInsightFile, 
+    selectInsightFile, 
+    deleteInsightFile,
+    generateInsightFileContent,
+    exportInsightFiles,
+    importInsightFiles,
+    reorderInsightFiles
   } = useCorisaStore();
 
   const [isAddingFile, setIsAddingFile] = useState(false);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
-  const handleAddFile = (type: ContextFileType) => {
-    addContextFile(type);
+  const handleAddFile = (type: InsightFileType) => {
+    addInsightFile(type);
     setIsAddingFile(false);
   };
 
   const handleGenerateContent = async (fileId: string) => {
     setIsGenerating(fileId);
     try {
-      const file = contextFiles.find(f => f.id === fileId);
+      const file = insightFiles.find(f => f.id === fileId);
       if (file) {
-        await generateContextFileContent(fileId, `Generate content for ${file.displayName} based on the project context`);
+        await generateInsightFileContent(fileId, `Generate content for ${file.displayName} based on the project context`);
       }
     } finally {
       setIsGenerating(null);
@@ -53,12 +55,12 @@ export default function ContextSidebar() {
   };
 
   const handleExport = () => {
-    const content = exportContextFiles();
+    const content = exportInsightFiles();
     const blob = new Blob([content], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'corisa-context-files.json';
+    a.download = 'corisa-insights.json';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -69,7 +71,7 @@ export default function ContextSidebar() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
-        importContextFiles(content);
+        importInsightFiles(content);
       };
       reader.readAsText(file);
     }
@@ -88,7 +90,7 @@ export default function ContextSidebar() {
     e.preventDefault();
     const draggedId = e.dataTransfer.getData('text/plain');
     if (draggedId !== targetId) {
-      const currentOrder = contextFiles.map(f => f.id);
+      const currentOrder = insightFiles.map(f => f.id);
       const draggedIndex = currentOrder.indexOf(draggedId);
       const targetIndex = currentOrder.indexOf(targetId);
       
@@ -96,7 +98,7 @@ export default function ContextSidebar() {
       newOrder.splice(draggedIndex, 1);
       newOrder.splice(targetIndex, 0, draggedId);
       
-      reorderContextFiles(newOrder);
+      reorderInsightFiles(newOrder);
     }
     setDragOverId(null);
   };
@@ -105,13 +107,26 @@ export default function ContextSidebar() {
     setDragOverId(null);
   };
 
+  const filteredFiles = filterCategory === 'all' 
+    ? insightFiles 
+    : insightFiles.filter(file => file.metadata.category === filterCategory);
+
+  const categories = [
+    { id: 'all', name: 'All Insights', count: insightFiles.length },
+    { id: 'project', name: 'Project', count: insightFiles.filter(f => f.metadata.category === 'project').length },
+    { id: 'technical', name: 'Technical', count: insightFiles.filter(f => f.metadata.category === 'technical').length },
+    { id: 'business', name: 'Business', count: insightFiles.filter(f => f.metadata.category === 'business').length },
+    { id: 'design', name: 'Design', count: insightFiles.filter(f => f.metadata.category === 'design').length },
+    { id: 'ai', name: 'AI', count: insightFiles.filter(f => f.metadata.category === 'ai').length },
+  ];
+
   return (
     <TooltipProvider>
       <div className="w-80 bg-card border-r border-border h-full flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Context Files</h2>
+            <h2 className="text-lg font-semibold">Insight Files</h2>
             <div className="flex items-center space-x-2">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -125,7 +140,7 @@ export default function ContextSidebar() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Add new context file</p>
+                  <p>Add new insight file</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -146,7 +161,7 @@ export default function ContextSidebar() {
                   </label>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Import context files</p>
+                  <p>Import insight files</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -162,9 +177,30 @@ export default function ContextSidebar() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Export context files</p>
+                  <p>Export insight files</p>
                 </TooltipContent>
               </Tooltip>
+            </div>
+          </div>
+
+          {/* Category Filter */}
+          <div className="mb-4">
+            <div className="flex items-center space-x-2 mb-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filter by Category</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {categories.map(category => (
+                <Button
+                  key={category.id}
+                  variant={filterCategory === category.id ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setFilterCategory(category.id)}
+                  className="h-6 px-2 text-xs"
+                >
+                  {category.name} ({category.count})
+                </Button>
+              ))}
             </div>
           </div>
 
@@ -172,20 +208,23 @@ export default function ContextSidebar() {
           {isAddingFile && (
             <Card className="mb-4">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Add Context File</CardTitle>
+                <CardTitle className="text-sm">Add Insight File</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(CONTEXT_FILE_TEMPLATES).map(([type, template]) => (
+              <CardContent className="space-y-2 max-h-64 overflow-y-auto">
+                {Object.entries(INSIGHT_TEMPLATES).map(([type, template]) => (
                   <Button
                     key={type}
                     variant="ghost"
                     className="w-full justify-start text-left h-auto p-3"
-                    onClick={() => handleAddFile(type as ContextFileType)}
+                    onClick={() => handleAddFile(type as InsightFileType)}
                   >
                     <span className="mr-2">{template.icon}</span>
                     <div>
                       <div className="font-medium">{template.displayName}</div>
                       <div className="text-xs text-muted-foreground">{template.description}</div>
+                      <div className="text-xs text-muted-foreground capitalize">
+                        {template.category} • {template.priority} priority
+                      </div>
                     </div>
                   </Button>
                 ))}
@@ -196,14 +235,19 @@ export default function ContextSidebar() {
 
         {/* File List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {contextFiles.length === 0 ? (
+          {filteredFiles.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm">No context files yet</p>
-              <p className="text-xs">Add files to organize your project context</p>
+              <p className="text-sm">
+                {insightFiles.length === 0 
+                  ? "No insight files yet" 
+                  : `No ${filterCategory === 'all' ? '' : filterCategory} insights found`
+                }
+              </p>
+              <p className="text-xs">Add files to organize your project insights</p>
             </div>
           ) : (
-            contextFiles.map((file) => (
+            filteredFiles.map((file) => (
               <div
                 key={file.id}
                 draggable
@@ -217,21 +261,24 @@ export default function ContextSidebar() {
               >
                 <Card
                   className={`transition-all duration-200 ${
-                    selectedContextFile?.id === file.id
+                    selectedInsightFile?.id === file.id
                       ? 'ring-2 ring-primary bg-primary/5'
                       : 'hover:bg-muted/50'
                   } ${file.isDirty ? 'border-orange-500/50' : ''}`}
-                  onClick={() => selectContextFile(file.id)}
+                  onClick={() => selectInsightFile(file.id)}
                 >
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 flex-1 min-w-0">
                         <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <span className="mr-2">{CONTEXT_FILE_TEMPLATES[file.type].icon}</span>
+                        <span className="mr-2">{INSIGHT_TEMPLATES[file.type].icon}</span>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">{file.displayName}</div>
                           <div className="text-xs text-muted-foreground truncate">
                             {file.description}
+                          </div>
+                          <div className="text-xs text-muted-foreground capitalize">
+                            {file.metadata.category} • {file.metadata.priority} priority
                           </div>
                         </div>
                       </div>
@@ -280,7 +327,7 @@ export default function ContextSidebar() {
                               className="h-6 w-6"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteContextFile(file.id);
+                                deleteInsightFile(file.id);
                               }}
                             >
                               <Trash2 className="h-3 w-3" />
@@ -302,7 +349,8 @@ export default function ContextSidebar() {
         {/* Footer */}
         <div className="p-4 border-t border-border">
           <div className="text-xs text-muted-foreground text-center">
-            {contextFiles.length} context file{contextFiles.length !== 1 ? 's' : ''}
+            {insightFiles.length} insight file{insightFiles.length !== 1 ? 's' : ''}
+            {filterCategory !== 'all' && ` • ${filteredFiles.length} shown`}
           </div>
         </div>
       </div>

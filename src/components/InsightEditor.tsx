@@ -4,7 +4,6 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
-import { CONTEXT_FILE_TEMPLATES } from '../types/context';
 import { 
   Save, 
   Sparkles, 
@@ -13,16 +12,20 @@ import {
   X,
   RotateCcw,
   Download,
-  Upload
+  Upload,
+  Tag,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { INSIGHT_TEMPLATES } from '../types/insights';
 
-export default function ContextEditor() {
+export default function InsightEditor() {
   const { 
-    selectedContextFile, 
-    updateContextFile, 
-    generateContextFileContent,
-    contextFiles 
+    selectedInsightFile, 
+    updateInsightFile, 
+    generateInsightFileContent,
+    insightFiles 
   } = useCorisaStore();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -32,31 +35,31 @@ export default function ContextEditor() {
 
   // Update edit content when selected file changes
   React.useEffect(() => {
-    if (selectedContextFile) {
-      setEditContent(selectedContextFile.content);
+    if (selectedInsightFile) {
+      setEditContent(selectedInsightFile.content);
     }
-  }, [selectedContextFile]);
+  }, [selectedInsightFile]);
 
   const handleSave = () => {
-    if (selectedContextFile) {
-      updateContextFile(selectedContextFile.id, { content: editContent });
+    if (selectedInsightFile) {
+      updateInsightFile(selectedInsightFile.id, { content: editContent });
       setIsEditing(false);
     }
   };
 
   const handleCancel = () => {
-    if (selectedContextFile) {
-      setEditContent(selectedContextFile.content);
+    if (selectedInsightFile) {
+      setEditContent(selectedInsightFile.content);
       setIsEditing(false);
     }
   };
 
   const handleGenerate = async () => {
-    if (!selectedContextFile || !generationPrompt.trim()) return;
+    if (!selectedInsightFile || !generationPrompt.trim()) return;
 
     setIsGenerating(true);
     try {
-      await generateContextFileContent(selectedContextFile.id, generationPrompt);
+      await generateInsightFileContent(selectedInsightFile.id, generationPrompt);
       setGenerationPrompt('');
     } finally {
       setIsGenerating(false);
@@ -64,26 +67,26 @@ export default function ContextEditor() {
   };
 
   const handleExportFile = () => {
-    if (!selectedContextFile) return;
+    if (!selectedInsightFile) return;
 
-    const content = JSON.stringify(selectedContextFile, null, 2);
+    const content = JSON.stringify(selectedInsightFile, null, 2);
     const blob = new Blob([content], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${selectedContextFile.name}.json`;
+    a.download = `${selectedInsightFile.name}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && selectedContextFile) {
+    if (file && selectedInsightFile) {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const content = e.target?.result as string;
-          updateContextFile(selectedContextFile.id, { content });
+          updateInsightFile(selectedInsightFile.id, { content });
           setEditContent(content);
         } catch (error) {
           console.error('Failed to import file:', error);
@@ -93,17 +96,19 @@ export default function ContextEditor() {
     }
   };
 
-  if (!selectedContextFile) {
+  if (!selectedInsightFile) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center text-muted-foreground">
           <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-medium mb-2">No file selected</h3>
-          <p className="text-sm">Select a context file from the sidebar to edit</p>
+          <h3 className="text-lg font-medium mb-2">No insight selected</h3>
+          <p className="text-sm">Select an insight file from the sidebar to edit</p>
         </div>
       </div>
     );
   }
+
+  const template = INSIGHT_TEMPLATES[selectedInsightFile.type];
 
   return (
     <TooltipProvider>
@@ -113,14 +118,17 @@ export default function ContextEditor() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
-                <span className="text-2xl">{CONTEXT_FILE_TEMPLATES[selectedContextFile.type].icon}</span>
+                <span className="text-2xl">{template.icon}</span>
                 <div>
-                  <h2 className="text-lg font-semibold">{selectedContextFile.displayName}</h2>
-                  <p className="text-sm text-muted-foreground">{selectedContextFile.description}</p>
+                  <h2 className="text-lg font-semibold">{selectedInsightFile.displayName}</h2>
+                  <p className="text-sm text-muted-foreground">{selectedInsightFile.description}</p>
                 </div>
               </div>
-              {selectedContextFile.isDirty && (
-                <div className="w-2 h-2 bg-orange-500 rounded-full" />
+              {selectedInsightFile.isDirty && (
+                <div className="flex items-center space-x-1 text-orange-600">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="text-xs">Unsaved changes</span>
+                </div>
               )}
             </div>
 
@@ -173,7 +181,7 @@ export default function ContextEditor() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Edit file</p>
+                      <p>Edit insight</p>
                     </TooltipContent>
                   </Tooltip>
 
@@ -210,12 +218,33 @@ export default function ContextEditor() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Export file</p>
+                      <p>Export insight</p>
                     </TooltipContent>
                   </Tooltip>
                 </>
               )}
             </div>
+          </div>
+
+          {/* Metadata */}
+          <div className="flex items-center space-x-4 mt-3 text-xs text-muted-foreground">
+            <div className="flex items-center space-x-1">
+              <Tag className="w-3 h-3" />
+              <span className="capitalize">{selectedInsightFile.metadata.category}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="capitalize">{selectedInsightFile.metadata.priority} priority</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <Calendar className="w-3 h-3" />
+              <span>Last modified: {selectedInsightFile.lastModified.toLocaleDateString()}</span>
+            </div>
+            {selectedInsightFile.metadata.lastAIAccess && (
+              <div className="flex items-center space-x-1">
+                <Sparkles className="w-3 h-3" />
+                <span>AI accessed: {selectedInsightFile.metadata.lastAIAccess.toLocaleDateString()}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -254,7 +283,7 @@ export default function ContextEditor() {
               </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              The AI will use your project context to generate relevant content for this file.
+              The AI will use your project insights to generate relevant content for this file.
             </div>
           </CardContent>
         </Card>
@@ -265,7 +294,7 @@ export default function ContextEditor() {
             <Textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
-              placeholder="Enter your context content here..."
+              placeholder="Enter your insight content here..."
               className="h-full resize-none font-mono text-sm"
               disabled={!isEditing}
             />
@@ -276,7 +305,7 @@ export default function ContextEditor() {
         <div className="p-4 border-t border-border">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div>
-              Last modified: {selectedContextFile.lastModified.toLocaleString()}
+              Last modified: {selectedInsightFile.lastModified.toLocaleString()}
             </div>
             <div>
               {editContent.length} characters

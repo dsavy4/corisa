@@ -5,7 +5,7 @@ import { useCorisaStore } from '../stores/corisaStore';
 import { Send, Sparkles, Copy, Check } from 'lucide-react';
 
 export default function ChatInterface() {
-  const { chatHistory, processPrompt, isLoading, getContextForAI } = useCorisaStore();
+  const { chatHistory, processPrompt, isLoading, getInsightsForAI, analyzeAIContext, aiGenerationContext } = useCorisaStore();
   const [input, setInput] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -34,9 +34,12 @@ export default function ChatInterface() {
     const prompt = input.trim();
     setInput('');
     
-    // Get context from context files to enhance AI responses
-    const context = getContextForAI();
-    const enhancedPrompt = context ? `${prompt}\n\nContext from project files:\n${context}` : prompt;
+    // Analyze AI context and show transparency
+    analyzeAIContext(prompt);
+    
+    // Get insights to enhance AI responses
+    const insights = getInsightsForAI();
+    const enhancedPrompt = insights ? `${prompt}\n\nProject Insights:\n${insights}` : prompt;
     
     await processPrompt(enhancedPrompt);
   };
@@ -44,9 +47,12 @@ export default function ChatInterface() {
   const handleExampleClick = async (prompt: string) => {
     setInput(prompt);
     
-    // Get context from context files to enhance AI responses
-    const context = getContextForAI();
-    const enhancedPrompt = context ? `${prompt}\n\nContext from project files:\n${context}` : prompt;
+    // Analyze AI context and show transparency
+    analyzeAIContext(prompt);
+    
+    // Get insights to enhance AI responses
+    const insights = getInsightsForAI();
+    const enhancedPrompt = insights ? `${prompt}\n\nProject Insights:\n${insights}` : prompt;
     
     await processPrompt(enhancedPrompt);
   };
@@ -172,6 +178,61 @@ export default function ChatInterface() {
           </div>
         ))}
         
+        {/* AI Context Transparency */}
+        {aiGenerationContext && (
+          <div className="bg-card border border-border rounded-lg p-4 slide-up">
+            <div className="flex items-start space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium mb-2">AI Context Analysis</div>
+                <div className="text-sm text-muted-foreground mb-3">
+                  {aiGenerationContext.contextSummary}
+                </div>
+                
+                {aiGenerationContext.referencedInsights.length > 0 && (
+                  <div className="mb-3">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">Referencing Insights:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {aiGenerationContext.referencedInsights.map((ref, index) => (
+                        <span
+                          key={index}
+                          className={`px-2 py-1 rounded text-xs ${
+                            ref.relevance === 'high' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : ref.relevance === 'medium'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                          }`}
+                        >
+                          {ref.insightName}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {aiGenerationContext.missingInsights.length > 0 && (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground mb-2">Suggested Insights:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {aiGenerationContext.missingInsights.map((insight, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded text-xs"
+                        >
+                          {insight}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading indicator */}
         {isLoading && (
           <div className="bg-card border border-border rounded-lg p-4 slide-up">
