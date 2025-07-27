@@ -43,6 +43,7 @@ export default function Header() {
   };
 
   const tabs = [
+    { id: 'landing', label: 'Home', icon: Brain },
     { id: 'chat', label: 'AI Chat', icon: Brain },
     { id: 'context', label: 'Insight Files', icon: FolderOpen },
     { id: 'yaml', label: 'YAML Editor', icon: FileText },

@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useCorisaStore } from '../stores/corisaStore';
-import { Send, Sparkles, Copy, Check } from 'lucide-react';
+import { Send, Sparkles, Copy, Check, Brain, FileText } from 'lucide-react';
+import AIContextDisplay from './AIContextDisplay';
 
 export default function ChatInterface() {
   const { chatHistory, processPrompt, isLoading, getInsightsForAI, analyzeAIContext, aiGenerationContext } = useCorisaStore();
@@ -77,7 +78,12 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto">
+      {/* AI Context Display */}
+      <div className="mb-6">
+        <AIContextDisplay />
+      </div>
+
       {/* Welcome Section */}
       {chatHistory.length === 0 && (
         <div className="bg-card border border-border rounded-lg p-8 mb-8">
@@ -89,7 +95,7 @@ export default function ChatInterface() {
               Welcome to Corisa AI
             </h2>
             <p className="text-muted-foreground mb-6">
-              Describe your application in plain English and watch as AI generates the complete YAML schema and code.
+              Describe your application in plain English and watch as AI generates the complete schema and code using your Insight Files for context.
             </p>
             
             {/* Example Prompts */}
@@ -136,6 +142,64 @@ export default function ChatInterface() {
                     __html: formatMessage(message.content) 
                   }}
                 />
+                
+                {/* Show AI context for AI messages */}
+                {message.type === 'ai' && message.aiContext && (
+                  <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border/50">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Brain className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm font-medium text-purple-600">AI Context</span>
+                    </div>
+                    
+                    {/* Referenced Insights */}
+                    {message.aiContext.referencedInsights && message.aiContext.referencedInsights.length > 0 && (
+                      <div className="mb-3">
+                        <div className="text-xs text-muted-foreground mb-2">Referenced Insight Files:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {message.aiContext.referencedInsights.map((ref, index) => (
+                            <span
+                              key={index}
+                              className={`px-2 py-1 rounded text-xs flex items-center space-x-1 ${
+                                ref.relevance === 'high' 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : ref.relevance === 'medium'
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                              }`}
+                            >
+                              <FileText className="w-3 h-3" />
+                              <span>{ref.insightName}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Missing Insights */}
+                    {message.aiContext.missingInsights && message.aiContext.missingInsights.length > 0 && (
+                      <div className="mb-3">
+                        <div className="text-xs text-muted-foreground mb-2">Suggested Insights:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {message.aiContext.missingInsights.map((insight, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded text-xs"
+                            >
+                              {insight}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Context Summary */}
+                    {message.aiContext.contextSummary && (
+                      <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded border-l-2 border-blue-500">
+                        <strong>Context:</strong> {message.aiContext.contextSummary}
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {/* Show generation details for AI messages */}
                 {message.type === 'ai' && message.metadata?.generation && (

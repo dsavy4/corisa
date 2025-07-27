@@ -324,6 +324,16 @@ export interface ChatMessage {
     generation?: GenerationResult;
     codeGeneration?: CodeGenerationResult;
   };
+  aiContext?: {
+    referencedInsights?: Array<{
+      insightId: string;
+      insightName: string;
+      relevance: 'high' | 'medium' | 'low';
+      context: string;
+    }>;
+    missingInsights?: string[];
+    contextSummary?: string;
+  };
 }
 
 export interface SchemaSummary {

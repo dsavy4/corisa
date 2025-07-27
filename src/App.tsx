@@ -3,6 +3,7 @@ import { useCorisaStore } from './stores/corisaStore';
 import { ThemeProvider } from './components/ThemeProvider';
 import Header from './components/Header';
 import Onboarding from './components/Onboarding';
+import LandingPage from './components/LandingPage';
 import ChatInterface from './components/ChatInterface';
 import InsightSidebar from './components/InsightSidebar';
 import InsightEditor from './components/InsightEditor';
@@ -29,6 +30,8 @@ function App() {
 
   const renderCurrentView = () => {
     switch (currentView) {
+      case 'landing':
+        return <LandingPage />;
       case 'chat':
         return <ChatInterface />;
       case 'context':
@@ -45,18 +48,21 @@ function App() {
       case 'preview':
         return <SchemaSummary />;
       default:
-        return <ChatInterface />;
+        return <LandingPage />;
     }
   };
 
   return (
     <ThemeProvider defaultTheme="dark">
       <div className="min-h-screen bg-background">
+        {/* Landing Page */}
+        {currentView === 'landing' && <LandingPage />}
+        
         {/* Onboarding */}
-        {!isProjectLoaded && <Onboarding />}
+        {!isProjectLoaded && currentView !== 'landing' && <Onboarding />}
         
         {/* Main App */}
-        {isProjectLoaded && (
+        {isProjectLoaded && currentView !== 'landing' && (
           <>
             {/* Header */}
             <Header />

@@ -22,7 +22,7 @@ interface CorisaStore {
   // State
   schema: CorisaSchema;
   chatHistory: ChatMessage[];
-  currentView: 'chat' | 'yaml' | 'code' | 'preview' | 'context';
+  currentView: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context';
   isLoading: boolean;
   error: string | null;
   yamlEditor: YAMLEditorState;
@@ -40,7 +40,7 @@ interface CorisaStore {
   processPrompt: (prompt: string) => Promise<void>;
   generateCode: (request: any) => Promise<CodeGenerationResult>;
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-  setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview' | 'context') => void;
+  setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context') => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   updateYAMLEditor: (content: string) => void;
@@ -176,11 +176,14 @@ export const useCorisaStore = create<CorisaStore>()(
         },
 
         processPrompt: async (prompt: string) => {
-          const { schema, addChatMessage, setLoading, setError, updateSchema } = get();
+          const { schema, addChatMessage, setLoading, setError, updateSchema, analyzeAIContext } = get();
           
           try {
             setLoading(true);
             setError(null);
+
+            // Analyze AI context for transparency
+            const aiContext = analyzeAIContext(prompt);
 
             // Add user message to chat
             addChatMessage({
@@ -196,19 +199,29 @@ export const useCorisaStore = create<CorisaStore>()(
               const updatedSchema = mergeSchemaModifications(schema, result.modifications);
               updateSchema(updatedSchema);
               
-              // Add AI response to chat
+              // Add AI response to chat with context
               addChatMessage({
                 type: 'ai',
                 content: result.explanation,
                 metadata: {
                   generation: result
+                },
+                aiContext: {
+                  referencedInsights: aiContext.referencedInsights,
+                  missingInsights: aiContext.missingInsights,
+                  contextSummary: aiContext.contextSummary
                 }
               });
             } else {
               setError('Failed to process prompt: ' + result.explanation);
               addChatMessage({
                 type: 'ai',
-                content: 'Sorry, I encountered an error while processing your request. Please try again.'
+                content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                aiContext: {
+                  referencedInsights: aiContext.referencedInsights,
+                  missingInsights: aiContext.missingInsights,
+                  contextSummary: aiContext.contextSummary
+                }
               });
             }
           } catch (error) {
@@ -239,7 +252,7 @@ export const useCorisaStore = create<CorisaStore>()(
           }));
         },
 
-        setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview' | 'context') => {
+        setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context') => {
           set({ currentView: view });
         },
 
