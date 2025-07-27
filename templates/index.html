@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corisa AI - AI-Native Development System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <h1>Corisa AI</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="generateCode()">
+                        <i class="fas fa-code"></i>
+                        Generate Code
+                    </button>
+                    <button class="btn btn-primary" onclick="saveSchema()">
+                        <i class="fas fa-save"></i>
+                        Save Schema
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Chat Interface -->
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Welcome message -->
+                    <div class="message ai-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-author">Corisa AI</span>
+                                <span class="message-time">Just now</span>
+                            </div>
+                            <div class="message-text">
+                                <h3>🤖 Welcome to Corisa AI!</h3>
+                                <p>I'm your AI-native development assistant. Describe your application in English, and I'll generate the complete YAML schema and code for you.</p>
+                                
+                                <h4>💡 Try these examples:</h4>
+                                <ul>
+                                    <li>"Add a user profile page with avatar upload"</li>
+                                    <li>"Create a payment form with Stripe integration"</li>
+                                    <li>"Add search functionality to the projects page"</li>
+                                    <li>"Modify the dashboard to show user statistics"</li>
+                                </ul>
+                                
+                                <h4>🔧 Commands:</h4>
+                                <ul>
+                                    <li><code>/help</code> - Show all commands</li>
+                                    <li><code>/show</code> - Show current schema</li>
+                                    <li><code>/generate</code> - Generate code</li>
+                                    <li><code>/save</code> - Save schema</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            class="chat-input" 
+                            placeholder="Describe your application feature in English..."
+                            rows="1"
+                            onkeydown="handleKeyDown(event)"
+                        ></textarea>
+                        <button class="send-button" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="input-hint">
+                        Press Enter to send, Shift+Enter for new line
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schema Panel -->
+            <div class="schema-panel">
+                <div class="schema-header">
+                    <h3><i class="fas fa-file-code"></i> YAML Schema</h3>
+                    <div class="schema-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="toggleSchemaView()">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadSchema()">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="schema-content">
+                    <div class="schema-summary" id="schemaSummary">
+                        <div class="summary-item">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Pages: <strong>0</strong></span>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Sections: <strong>0</strong></span>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-puzzle-piece"></i>
+                            <span>Components: <strong>0</strong></span>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-cogs"></i>
+                            <span>Services: <strong>0</strong></span>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-database"></i>
+                            <span>Repositories: <strong>0</strong></span>
+                        </div>
+                    </div>
+                    <div class="schema-yaml" id="schemaYaml" style="display: none;">
+                        <pre><code id="yamlContent"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Code Generation Modal -->
+        <div class="modal" id="codeModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-code"></i> Generated Code</h3>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="code-tabs">
+                        <button class="tab-button active" onclick="switchTab('frontend')">Frontend</button>
+                        <button class="tab-button" onclick="switchTab('backend')">Backend</button>
+                        <button class="tab-button" onclick="switchTab('database')">Database</button>
+                    </div>
+                    <div class="code-content">
+                        <pre><code id="generatedCode"></code></pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                    <button class="btn btn-primary" onclick="downloadCode()">
+                        <i class="fas fa-download"></i>
+                        Download Code
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner">
+                <i class="fas fa-cog fa-spin"></i>
+                <p>Processing your request...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
