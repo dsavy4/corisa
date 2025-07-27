@@ -1,0 +1,9 @@
+name = "corisa-ai"
+compatibility_date = "2025-07-27"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = "npm run build"
+
+[site]
+bucket = ".next"
