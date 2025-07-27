@@ -8,16 +8,31 @@ import {
   SchemaSummary,
   YAMLEditorState
 } from '../types/corisa';
+import { 
+  InsightFile, 
+  ProjectInsights, 
+  InsightFileType,
+  INSIGHT_TEMPLATES,
+  AIInsightReference,
+  AIGenerationContext
+} from '../types/insights';
 import { generateYAMLFromPrompt, generateCodeFromSchema } from '../lib/ai-engine';
 
 interface CorisaStore {
   // State
   schema: CorisaSchema;
   chatHistory: ChatMessage[];
-  currentView: 'chat' | 'yaml' | 'code' | 'preview';
+  currentView: 'chat' | 'yaml' | 'code' | 'preview' | 'context';
   isLoading: boolean;
   error: string | null;
   yamlEditor: YAMLEditorState;
+  
+  // Insight Management
+  currentProject: ProjectInsights | null;
+  insightFiles: InsightFile[];
+  selectedInsightFile: InsightFile | null;
+  isProjectLoaded: boolean;
+  aiGenerationContext: AIGenerationContext | null;
 
   // Actions
   initializeSchema: () => void;
@@ -25,7 +40,7 @@ interface CorisaStore {
   processPrompt: (prompt: string) => Promise<void>;
   generateCode: (request: any) => Promise<CodeGenerationResult>;
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-  setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview') => void;
+  setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview' | 'context') => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   updateYAMLEditor: (content: string) => void;
@@ -35,6 +50,20 @@ interface CorisaStore {
   exportSchema: () => string;
   importSchema: (yamlContent: string) => void;
   resetSchema: () => void;
+
+  // Insight File Actions
+  createNewProject: (name: string, description: string, source: 'import' | 'new') => void;
+  importProject: (files: FileList) => Promise<void>;
+  addInsightFile: (type: InsightFileType, name?: string) => void;
+  updateInsightFile: (id: string, updates: Partial<InsightFile>) => void;
+  deleteInsightFile: (id: string) => void;
+  selectInsightFile: (id: string) => void;
+  reorderInsightFiles: (fileIds: string[]) => void;
+  generateInsightFileContent: (fileId: string, prompt: string) => Promise<void>;
+  exportInsightFiles: () => string;
+  importInsightFiles: (content: string) => void;
+  getInsightsForAI: () => string;
+  analyzeAIContext: (prompt: string) => AIGenerationContext;
 }
 
 const createInitialSchema = (): CorisaSchema => ({
@@ -118,6 +147,13 @@ export const useCorisaStore = create<CorisaStore>()(
           lastSaved: new Date(),
           isDirty: false
         },
+
+        // Insight Management
+        currentProject: null,
+        insightFiles: [],
+        selectedInsightFile: null,
+        isProjectLoaded: false,
+        aiGenerationContext: null,
 
         // Actions
         initializeSchema: () => {
@@ -203,7 +239,7 @@ export const useCorisaStore = create<CorisaStore>()(
           }));
         },
 
-        setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview') => {
+        setCurrentView: (view: 'chat' | 'yaml' | 'code' | 'preview' | 'context') => {
           set({ currentView: view });
         },
 
@@ -293,6 +329,226 @@ export const useCorisaStore = create<CorisaStore>()(
             chatHistory: [],
             error: null
           });
+        },
+
+        // Insight File Actions
+        createNewProject: (name: string, description: string, source: 'import' | 'new') => {
+          const newProject: ProjectInsights = {
+            id: Date.now().toString(),
+            name,
+            description,
+            files: [],
+            createdAt: new Date(),
+            lastModified: new Date(),
+            metadata: {
+              source,
+              tags: [],
+              aiContext: ''
+            }
+          };
+          set({ 
+            currentProject: newProject,
+            insightFiles: [],
+            selectedInsightFile: null,
+            isProjectLoaded: true
+          });
+        },
+
+        importProject: async (files: FileList) => {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            if (event.target?.result) {
+              try {
+                const parsedInsightFiles = JSON.parse(event.target.result as string);
+                set({ 
+                  insightFiles: parsedInsightFiles,
+                  selectedInsightFile: parsedInsightFiles[0] || null,
+                  isProjectLoaded: true
+                });
+              } catch (error) {
+                set({ error: 'Failed to import project: ' + String(error) });
+              }
+            }
+          };
+          reader.readAsText(files[0]);
+        },
+
+        addInsightFile: (type: InsightFileType, name?: string) => {
+          const template = INSIGHT_TEMPLATES[type];
+          const newFile: InsightFile = {
+            id: Date.now().toString(),
+            type,
+            name: name || template.displayName,
+            displayName: template.displayName,
+            description: template.description,
+            content: template.defaultContent,
+            order: get().insightFiles.length,
+            lastModified: new Date(),
+            isDirty: false,
+            metadata: {
+              category: template.category,
+              priority: template.priority,
+              tags: template.suggestedTags,
+              relatedFiles: []
+            },
+            aiReferences: []
+          };
+          set(state => ({ 
+            insightFiles: [...state.insightFiles, newFile],
+            selectedInsightFile: newFile
+          }));
+        },
+
+        updateInsightFile: (id: string, updates: Partial<InsightFile>) => {
+          set(state => ({
+            insightFiles: state.insightFiles.map(file => 
+              file.id === id ? { ...file, ...updates, lastModified: new Date(), isDirty: true } : file
+            )
+          }));
+          if (get().selectedInsightFile?.id === id) {
+            set(state => ({
+              selectedInsightFile: state.selectedInsightFile ? 
+                { ...state.selectedInsightFile, ...updates, lastModified: new Date(), isDirty: true } : null
+            }));
+          }
+        },
+
+        deleteInsightFile: (id: string) => {
+          set(state => ({
+            insightFiles: state.insightFiles.filter(file => file.id !== id),
+            selectedInsightFile: state.selectedInsightFile?.id === id ? null : state.selectedInsightFile
+          }));
+        },
+
+        selectInsightFile: (id: string) => {
+          const file = get().insightFiles.find(file => file.id === id);
+          set({ selectedInsightFile: file || null });
+        },
+
+        reorderInsightFiles: (fileIds: string[]) => {
+          set(state => ({
+            insightFiles: state.insightFiles.map((file, index) => ({
+              ...file,
+              order: fileIds.indexOf(file.id)
+            })).sort((a, b) => a.order - b.order)
+          }));
+        },
+
+        generateInsightFileContent: async (fileId: string, prompt: string) => {
+          const file = get().insightFiles.find(f => f.id === fileId);
+          if (!file) return;
+
+          try {
+            set({ isLoading: true });
+            const result = await generateYAMLFromPrompt(prompt, get().schema);
+            
+            if (result.success) {
+              set(state => ({
+                insightFiles: state.insightFiles.map(f => 
+                  f.id === fileId ? { ...f, content: result.explanation, lastModified: new Date(), isDirty: true } : f
+                )
+              }));
+              
+              if (get().selectedInsightFile?.id === fileId) {
+                set(state => ({
+                  selectedInsightFile: state.selectedInsightFile ? 
+                    { ...state.selectedInsightFile, content: result.explanation, lastModified: new Date(), isDirty: true } : null
+                }));
+              }
+            } else {
+              set({ error: 'Failed to generate content: ' + result.explanation });
+            }
+          } catch (error) {
+            set({ error: 'Failed to generate content: ' + String(error) });
+          } finally {
+            set({ isLoading: false });
+          }
+        },
+
+        exportInsightFiles: () => {
+          const { insightFiles } = get();
+          return JSON.stringify(insightFiles, null, 2);
+        },
+
+        importInsightFiles: (content: string) => {
+          try {
+            const parsedInsightFiles = JSON.parse(content);
+            set({ 
+              insightFiles: parsedInsightFiles,
+              selectedInsightFile: parsedInsightFiles[0] || null,
+              isProjectLoaded: true
+            });
+          } catch (error) {
+            set({ error: 'Failed to import insight files: ' + String(error) });
+          }
+        },
+
+        getInsightsForAI: () => {
+          const { insightFiles } = get();
+          if (insightFiles.length === 0) return '';
+
+          const context = insightFiles.map(file => ({
+            name: file.displayName,
+            description: file.description,
+            content: file.content,
+            category: file.metadata.category,
+            priority: file.metadata.priority
+          }));
+          return JSON.stringify(context, null, 2);
+        },
+
+        analyzeAIContext: (prompt: string) => {
+          const { insightFiles } = get();
+          const referencedInsights: AIInsightReference[] = [];
+          const missingInsights: string[] = [];
+
+          // Simple keyword matching to find relevant insights
+          const promptLower = prompt.toLowerCase();
+          
+          insightFiles.forEach(file => {
+            const contentLower = file.content.toLowerCase();
+            const nameLower = file.displayName.toLowerCase();
+            
+            // Check if insight is relevant based on content and name
+            const relevance = 
+              contentLower.includes(promptLower) || 
+              nameLower.includes(promptLower) ? 'high' :
+              contentLower.includes(promptLower.split(' ')[0]) ? 'medium' : 'low';
+            
+            if (relevance !== 'low') {
+              referencedInsights.push({
+                insightId: file.id,
+                insightName: file.displayName,
+                relevance,
+                context: `Relevant content from ${file.displayName}`
+              });
+            }
+          });
+
+          // Suggest missing insights based on prompt
+          if (promptLower.includes('login') || promptLower.includes('auth')) {
+            if (!insightFiles.find(f => f.type === 'features-spec')) {
+              missingInsights.push('Features Specification');
+            }
+          }
+          if (promptLower.includes('api') || promptLower.includes('endpoint')) {
+            if (!insightFiles.find(f => f.type === 'api-specification')) {
+              missingInsights.push('API Specification');
+            }
+          }
+
+          const contextSummary = referencedInsights.length > 0 
+            ? `Using ${referencedInsights.length} insight files for context`
+            : 'No relevant insights found';
+
+          const aiContext: AIGenerationContext = {
+            referencedInsights,
+            missingInsights,
+            contextSummary
+          };
+
+          set({ aiGenerationContext: aiContext });
+          return aiContext;
         }
       }),
       { 

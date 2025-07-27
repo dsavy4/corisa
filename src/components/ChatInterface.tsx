@@ -5,7 +5,7 @@ import { useCorisaStore } from '../stores/corisaStore';
 import { Send, Sparkles, Copy, Check } from 'lucide-react';
 
 export default function ChatInterface() {
-  const { chatHistory, processPrompt, isLoading } = useCorisaStore();
+  const { chatHistory, processPrompt, isLoading, getInsightsForAI, analyzeAIContext, aiGenerationContext } = useCorisaStore();
   const [input, setInput] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -33,12 +33,28 @@ export default function ChatInterface() {
 
     const prompt = input.trim();
     setInput('');
-    await processPrompt(prompt);
+    
+    // Analyze AI context and show transparency
+    analyzeAIContext(prompt);
+    
+    // Get insights to enhance AI responses
+    const insights = getInsightsForAI();
+    const enhancedPrompt = insights ? `${prompt}\n\nProject Insights:\n${insights}` : prompt;
+    
+    await processPrompt(enhancedPrompt);
   };
 
   const handleExampleClick = async (prompt: string) => {
     setInput(prompt);
-    await processPrompt(prompt);
+    
+    // Analyze AI context and show transparency
+    analyzeAIContext(prompt);
+    
+    // Get insights to enhance AI responses
+    const insights = getInsightsForAI();
+    const enhancedPrompt = insights ? `${prompt}\n\nProject Insights:\n${insights}` : prompt;
+    
+    await processPrompt(enhancedPrompt);
   };
 
   const copyToClipboard = async (text: string, messageId: string) => {
@@ -64,15 +80,15 @@ export default function ChatInterface() {
     <div className="max-w-4xl mx-auto">
       {/* Welcome Section */}
       {chatHistory.length === 0 && (
-        <div className="ai-card mb-8">
+        <div className="bg-card border border-border rounded-lg p-8 mb-8">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">
+            <h2 className="text-2xl font-bold mb-2">
               Welcome to Corisa AI
             </h2>
-            <p className="text-white/60 mb-6">
+            <p className="text-muted-foreground mb-6">
               Describe your application in plain English and watch as AI generates the complete YAML schema and code.
             </p>
             
@@ -83,7 +99,7 @@ export default function ChatInterface() {
                   key={index}
                   onClick={() => handleExampleClick(prompt)}
                   disabled={isLoading}
-                  className="p-3 text-left bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all duration-300 text-white/80 hover:text-white"
+                  className="p-3 text-left bg-muted border border-border rounded-lg hover:bg-muted/80 transition-all duration-300 text-muted-foreground hover:text-foreground"
                 >
                   {prompt}
                 </button>
@@ -98,7 +114,7 @@ export default function ChatInterface() {
         {chatHistory.map((message) => (
           <div
             key={message.id}
-            className={`chat-message ${message.type} slide-up`}
+            className={`bg-card border border-border rounded-lg p-4 ${message.type} slide-up`}
           >
             <div className="flex items-start space-x-3">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -115,7 +131,7 @@ export default function ChatInterface() {
               
               <div className="flex-1 min-w-0">
                 <div 
-                  className="text-white"
+                  className="text-foreground"
                   dangerouslySetInnerHTML={{ 
                     __html: formatMessage(message.content) 
                   }}
@@ -123,15 +139,15 @@ export default function ChatInterface() {
                 
                 {/* Show generation details for AI messages */}
                 {message.type === 'ai' && message.metadata?.generation && (
-                  <div className="mt-3 p-3 bg-slate-800/50 rounded-lg">
+                  <div className="mt-3 p-3 bg-muted rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/60">Generated Entities:</span>
+                      <span className="text-sm text-muted-foreground">Generated Entities:</span>
                       <button
                         onClick={() => copyToClipboard(
                           JSON.stringify(message.metadata?.generation, null, 2),
                           message.id
                         )}
-                        className="p-1 text-white/40 hover:text-white transition-colors"
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {copiedId === message.id ? (
                           <Check className="w-4 h-4" />
@@ -145,7 +161,7 @@ export default function ChatInterface() {
                       {message.metadata.generation.newEntities.map((entity, index) => (
                         <span
                           key={index}
-                          className="px-2 py-1 bg-green-600/20 text-green-300 rounded"
+                          className="px-2 py-1 bg-green-600/20 text-green-600 rounded"
                         >
                           {entity}
                         </span>
@@ -154,7 +170,7 @@ export default function ChatInterface() {
                   </div>
                 )}
                 
-                <div className="text-xs text-white/40 mt-2">
+                <div className="text-xs text-muted-foreground mt-2">
                   {new Date(message.timestamp).toLocaleTimeString()}
                 </div>
               </div>
@@ -162,9 +178,64 @@ export default function ChatInterface() {
           </div>
         ))}
         
+        {/* AI Context Transparency */}
+        {aiGenerationContext && (
+          <div className="bg-card border border-border rounded-lg p-4 slide-up">
+            <div className="flex items-start space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium mb-2">AI Context Analysis</div>
+                <div className="text-sm text-muted-foreground mb-3">
+                  {aiGenerationContext.contextSummary}
+                </div>
+                
+                {aiGenerationContext.referencedInsights.length > 0 && (
+                  <div className="mb-3">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">Referencing Insights:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {aiGenerationContext.referencedInsights.map((ref, index) => (
+                        <span
+                          key={index}
+                          className={`px-2 py-1 rounded text-xs ${
+                            ref.relevance === 'high' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : ref.relevance === 'medium'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                          }`}
+                        >
+                          {ref.insightName}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {aiGenerationContext.missingInsights.length > 0 && (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground mb-2">Suggested Insights:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {aiGenerationContext.missingInsights.map((insight, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded text-xs"
+                        >
+                          {insight}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading indicator */}
         {isLoading && (
-          <div className="chat-message ai slide-up">
+          <div className="bg-card border border-border rounded-lg p-4 slide-up">
             <div className="flex items-start space-x-3">
               <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
@@ -175,7 +246,7 @@ export default function ChatInterface() {
                   <div></div>
                   <div></div>
                 </div>
-                <span className="text-white/60">AI is thinking...</span>
+                <span className="text-muted-foreground">AI is thinking...</span>
               </div>
             </div>
           </div>
@@ -185,7 +256,7 @@ export default function ChatInterface() {
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="ai-card">
+      <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-4">
         <div className="flex space-x-3">
           <input
             type="text"
@@ -193,18 +264,18 @@ export default function ChatInterface() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Describe your application or feature in plain English..."
             disabled={isLoading}
-            className="ai-input flex-1"
+            className="flex-1 bg-background border border-input rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="ai-button disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>
         </div>
         
-        <div className="mt-3 text-xs text-white/40">
+        <div className="mt-3 text-xs text-muted-foreground">
           Try: "Create a user dashboard with analytics charts" or "Add a shopping cart with payment integration"
         </div>
       </form>

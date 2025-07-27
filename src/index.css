@@ -58,11 +58,7 @@
   }
 }
 
-/* Custom styles for glass effect */
-.glass-card {
-  @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-lg shadow-xl;
-}
-
+/* Custom styles */
 .fade-in {
   animation: fadeIn 0.5s ease-in-out;
 }
@@ -76,4 +72,18 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Dark mode specific styles */
+.dark {
+  color-scheme: dark;
+}
+
+/* Ensure proper contrast in both themes */
+.dark .bg-background {
+  background-color: hsl(var(--background));
+}
+
+.light .bg-background {
+  background-color: hsl(var(--background));
 }
