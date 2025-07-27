@@ -50,7 +50,7 @@ export class CorisaAIEngine {
         removedEntities: [],
         validation: {
           valid: false,
-          errors: [{ entity: 'ai_engine', field: 'processing', message: error.message, severity: 'error' }],
+          errors: [{ entity: 'ai_engine', field: 'processing', message: String(error), severity: 'error' }],
           warnings: []
         },
         explanation: 'Failed to process the prompt due to an error.'
@@ -144,7 +144,7 @@ export class CorisaAIEngine {
     if (analysis.actions.includes('authentication')) {
       modifications.pages = [
         ...(currentSchema.pages || []),
-        this.generateAuthPages()
+        ...this.generateAuthPages()
       ];
       modifications.services = [
         ...(currentSchema.services || []),
@@ -293,7 +293,7 @@ export class CorisaAIEngine {
         type: 'form',
         category: 'authentication',
         props: [
-          { name: 'onSubmit', type: 'function', required: true, description: 'Form submission handler' },
+          { name: 'onSubmit', type: 'object', required: true, description: 'Form submission handler' },
           { name: 'loading', type: 'boolean', required: false, defaultValue: false, description: 'Loading state' }
         ],
         events: [
@@ -517,18 +517,20 @@ export class CorisaAIEngine {
           name: 'createdAt',
           type: 'date',
           required: true,
-          unique: false
+          unique: false,
+          validation: {}
         },
         {
           name: 'updatedAt',
           type: 'date',
           required: true,
-          unique: false
+          unique: false,
+          validation: {}
         }
       ],
       relationships: [
         {
-          type: 'many-to-one',
+          type: 'one-to-many',
           target: 'user',
           foreignKey: 'userId',
           cascade: false

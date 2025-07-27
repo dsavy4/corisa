@@ -1,7 +1,6 @@
-'use client';
-
 import { useCorisaStore } from '../stores/corisaStore';
 import { Brain, Code, FileText, Eye, Download, Upload, RotateCcw } from 'lucide-react';
+import { Button } from './ui/button';
 
 export default function Header() {
   const { 
@@ -69,10 +68,11 @@ export default function Header() {
               const isActive = currentView === tab.id;
               
               return (
-                <button
+                <Button
                   key={tab.id}
                   onClick={() => setCurrentView(tab.id as any)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                  variant={isActive ? "default" : "ghost"}
+                  className={`flex items-center space-x-2 ${
                     isActive
                       ? 'bg-purple-600/20 border border-purple-500/30 text-purple-300'
                       : 'text-white/60 hover:text-white hover:bg-white/10'
@@ -80,7 +80,7 @@ export default function Header() {
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
-                </button>
+                </Button>
               );
             })}
           </nav>
@@ -96,31 +96,44 @@ export default function Header() {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-2">
-              <button
+              <Button
                 onClick={handleExport}
-                className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
+                variant="ghost"
+                size="icon"
+                className="text-white/60 hover:text-white hover:bg-white/10"
                 title="Export Schema"
               >
                 <Download className="w-4 h-4" />
-              </button>
+              </Button>
               
-              <label className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300 cursor-pointer">
-                <Upload className="w-4 h-4" />
-                <input
-                  type="file"
-                  accept=".json,.yaml,.yml"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
+              <label className="cursor-pointer">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/60 hover:text-white hover:bg-white/10"
+                  asChild
+                >
+                  <span>
+                    <Upload className="w-4 h-4" />
+                    <input
+                      type="file"
+                      accept=".json,.yaml,.yml"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </span>
+                </Button>
               </label>
               
-              <button
+              <Button
                 onClick={resetSchema}
-                className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
+                variant="ghost"
+                size="icon"
+                className="text-white/60 hover:text-white hover:bg-white/10"
                 title="Reset Schema"
               >
                 <RotateCcw className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

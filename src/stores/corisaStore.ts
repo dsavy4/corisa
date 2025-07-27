@@ -165,7 +165,6 @@ export const useCorisaStore = create<CorisaStore>()(
                 type: 'ai',
                 content: result.explanation,
                 metadata: {
-                  analysis: result.validation,
                   generation: result
                 }
               });
@@ -177,7 +176,7 @@ export const useCorisaStore = create<CorisaStore>()(
               });
             }
           } catch (error) {
-            setError(error.message);
+            setError(String(error));
             addChatMessage({
               type: 'ai',
               content: 'An unexpected error occurred. Please try again.'
@@ -253,7 +252,7 @@ export const useCorisaStore = create<CorisaStore>()(
               yamlEditor: {
                 ...state.yamlEditor,
                 isValid: false,
-                errors: [error.message]
+                errors: [String(error)]
               }
             }));
           }
@@ -284,7 +283,7 @@ export const useCorisaStore = create<CorisaStore>()(
             const { updateSchema } = get();
             updateSchema(parsedSchema);
           } catch (error) {
-            set({ error: 'Failed to import schema: ' + error.message });
+            set({ error: 'Failed to import schema: ' + String(error) });
           }
         },
 

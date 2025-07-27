@@ -1,16 +1,14 @@
-'use client';
-
 import { useEffect } from 'react';
-import { useCorisaStore } from '../stores/corisaStore';
-import Header from '../components/Header';
-import ChatInterface from '../components/ChatInterface';
-import YAMLEditor from '../components/YAMLEditor';
-import CodeGenerator from '../components/CodeGenerator';
-import SchemaSummary from '../components/SchemaSummary';
-import LoadingSpinner from '../components/LoadingSpinner';
-import ErrorToast from '../components/ErrorToast';
+import { useCorisaStore } from './stores/corisaStore';
+import Header from './components/Header';
+import ChatInterface from './components/ChatInterface';
+import YAMLEditor from './components/YAMLEditor';
+import CodeGenerator from './components/CodeGenerator';
+import SchemaSummary from './components/SchemaSummary';
+import LoadingSpinner from './components/LoadingSpinner';
+import ErrorToast from './components/ErrorToast';
 
-export default function Home() {
+function App() {
   const { 
     currentView, 
     isLoading, 
@@ -71,3 +69,5 @@ export default function Home() {
     </div>
   );
 }
+
+export default App;
