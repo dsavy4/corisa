@@ -419,7 +419,13 @@ export const useCorisaStore = create<CorisaStore>()(
             currentProject: newProject,
             insightFiles: [],
             selectedInsightFile: null,
-            isProjectLoaded: true
+            isProjectLoaded: true,
+            // Reset core app state for a clean start
+            schema: createInitialSchema(),
+            chatHistory: [],
+            aiGenerationContext: null,
+            error: null,
+            currentView: 'chat'
           });
         },
 
