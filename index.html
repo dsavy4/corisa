@@ -11,9 +11,10 @@
           var storageKey = 'corisa-ui-theme';
           var stored = localStorage.getItem(storageKey);
           var root = document.documentElement;
-          if (stored === 'light') {
-            root.classList.remove('dark');
-            root.classList.add('light');
+          if (stored !== 'dark') {
+            localStorage.setItem(storageKey, 'dark');
+            root.classList.remove('light');
+            root.classList.add('dark');
           } else {
             root.classList.remove('light');
             root.classList.add('dark');
