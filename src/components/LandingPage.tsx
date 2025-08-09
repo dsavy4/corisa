@@ -8,14 +8,14 @@ import {
   Code, 
   Target, 
   Lightbulb,
-  Sparkles,
-  ArrowRight,
   CheckCircle,
   Zap,
   Shield,
   Users,
   BarChart3
 } from 'lucide-react';
+import PromptStarter from './PromptStarter';
+import ThemeToggle from './ThemeToggle';
 
 export default function LandingPage() {
   const { setCurrentView } = useCorisaStore();
@@ -93,17 +93,17 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-background dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center space-y-8">
           {/* Logo and Title */}
           <div className="flex items-center justify-center space-x-4 mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl flex items-center justify-center">
+            <div className="w-20 h-20 bg-muted rounded-3xl flex items-center justify-center">
               <Brain className="w-10 h-10 text-white" />
             </div>
             <div className="text-left">
-              <h1 className="text-6xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+              <h1 className="text-6xl font-bold">
                 Corisa AI
               </h1>
               <p className="text-xl text-white/80">AI-Native Development Platform</p>
@@ -120,31 +120,23 @@ export default function LandingPage() {
               AI tools that actually understand what you're building and why.
             </p>
             
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <Button 
-                size="lg"
-                onClick={() => setCurrentView('chat')}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                Start Building
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="border-white/20 text-white hover:bg-white/10 px-8 py-3 text-lg"
-              >
-                Watch Demo
-              </Button>
+            {/* Builder CTA */}
+            <div className="max-w-4xl mx-auto mt-8 space-y-4">
+              <div className="flex items-center justify-end">
+                {/* @ts-ignore */}
+                <ThemeToggle />
+              </div>
+              <div className="bg-card border border-border p-6 rounded-xl text-center">
+                <div className="mb-3 text-muted-foreground">Ready to build? Launch the Corisa Builder.</div>
+                <Button onClick={() => setCurrentView('chat')}>Launch Builder</Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Problem Section */}
-      <div className="bg-white/5 backdrop-blur-sm py-16">
+      <div className="bg-muted/50 dark:bg-white/5 backdrop-blur-sm py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-white mb-4">The Problem</h3>
@@ -200,7 +192,7 @@ export default function LandingPage() {
       </div>
 
       {/* Features Section */}
-      <div className="bg-white/5 backdrop-blur-sm py-16">
+      <div className="bg-muted/50 dark:bg-white/5 backdrop-blur-sm py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-white mb-4">How It Works</h3>
@@ -219,7 +211,7 @@ export default function LandingPage() {
                 onMouseEnter={() => setActiveFeature(index)}
               >
                 <CardHeader>
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-6">
                     {feature.icon}
                   </div>
                   <CardTitle className="text-white text-xl">{feature.title}</CardTitle>
@@ -253,14 +245,12 @@ export default function LandingPage() {
             <p className="text-xl text-white/70">
               Join the future of AI-native development with structured context and transparent AI reasoning.
             </p>
-            <Button 
+                         <Button 
               size="lg"
               onClick={() => setCurrentView('chat')}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
+              className="text-white px-8 py-3 text-lg"
             >
-              <Sparkles className="w-5 h-5 mr-2" />
               Get Started Now
-              <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
         </div>

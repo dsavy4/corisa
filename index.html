@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Corisa AI - AI-Native Development System</title>
+    <script>
+      (function() {
+        try {
+          var storageKey = 'corisa-ui-theme';
+          var stored = localStorage.getItem(storageKey);
+          var root = document.documentElement;
+          if (stored !== 'dark') {
+            localStorage.setItem(storageKey, 'dark');
+            root.classList.remove('light');
+            root.classList.add('dark');
+          } else {
+            root.classList.remove('light');
+            root.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

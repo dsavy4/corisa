@@ -48,7 +48,7 @@ export default function AIContextDisplay() {
   return (
     <div className="space-y-4">
       {/* AI Context Header */}
-      <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border-purple-200 dark:border-purple-800">
+      <Card className="bg-muted/50 dark:bg-muted/30 border border-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center space-x-2 text-lg">
             <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />

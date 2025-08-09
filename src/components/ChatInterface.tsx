@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useCorisaStore } from '../stores/corisaStore';
 import { Send, Sparkles, Copy, Check, Brain, FileText } from 'lucide-react';
 import AIContextDisplay from './AIContextDisplay';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
 
 export default function ChatInterface() {
   const { chatHistory, processPrompt, isLoading, getInsightsForAI, analyzeAIContext, aiGenerationContext } = useCorisaStore();
@@ -88,7 +90,7 @@ export default function ChatInterface() {
       {chatHistory.length === 0 && (
         <div className="bg-card border border-border rounded-lg p-8 mb-8">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-2xl font-bold mb-2">
@@ -125,8 +127,8 @@ export default function ChatInterface() {
             <div className="flex items-start space-x-3">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                 message.type === 'user' 
-                  ? 'bg-purple-600' 
-                  : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                  ? 'bg-muted' 
+                  : 'bg-muted'
               }`}>
                 {message.type === 'user' ? (
                   <span className="text-white text-sm font-medium">U</span>
@@ -147,7 +149,7 @@ export default function ChatInterface() {
                 {message.type === 'ai' && message.aiContext && (
                   <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border/50">
                     <div className="flex items-center space-x-2 mb-2">
-                      <Brain className="w-4 h-4 text-purple-600" />
+                      <Brain className="w-4 h-4" />
                       <span className="text-sm font-medium text-purple-600">AI Context</span>
                     </div>
                     
@@ -301,7 +303,7 @@ export default function ChatInterface() {
         {isLoading && (
           <div className="bg-card border border-border rounded-lg p-4 slide-up">
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div className="flex items-center space-x-2">
@@ -322,21 +324,17 @@ export default function ChatInterface() {
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-4">
         <div className="flex space-x-3">
-          <input
+          <Input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Describe your application or feature in plain English..."
             disabled={isLoading}
-            className="flex-1 bg-background border border-input rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
+          <Button type="submit" disabled={!input.trim() || isLoading}>
             <Send className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
         
         <div className="mt-3 text-xs text-muted-foreground">

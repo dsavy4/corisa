@@ -18,6 +18,7 @@ import {
   Settings
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import GitImport from './GitImport';
 
 export default function Onboarding() {
   const { 
@@ -25,19 +26,26 @@ export default function Onboarding() {
     importProject, 
     exportInsightFiles, 
     importInsightFiles,
-    isProjectLoaded 
+    isProjectLoaded,
+    quickStartFromPrompt,
+    setCurrentView 
   } = useCorisaStore();
 
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!projectName.trim() || !projectDescription.trim()) return;
     
     setIsCreating(true);
     createNewProject(projectName.trim(), projectDescription.trim(), 'new');
-    setIsCreating(false);
+    try {
+      await quickStartFromPrompt(projectDescription.trim());
+      setCurrentView('chat');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleImportProject = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,16 +110,16 @@ export default function Onboarding() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-4xl w-full space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center space-x-3 mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center">
                 <Brain className="w-8 h-8 text-white" />
               </div>
               <div className="text-left">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold">
                   Corisa AI
                 </h1>
                 <p className="text-lg text-white/80">Revolutionary Abstract Coding Platform</p>
@@ -144,7 +152,7 @@ export default function Onboarding() {
           {/* Project Creation Options */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Create New Project */}
-            <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Plus className="w-5 h-5" />
@@ -163,7 +171,6 @@ export default function Onboarding() {
                     placeholder="My Awesome App"
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                   />
                 </div>
                 
@@ -176,14 +183,13 @@ export default function Onboarding() {
                     value={projectDescription}
                     onChange={(e) => setProjectDescription(e.target.value)}
                     rows={4}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                   />
                 </div>
 
                 <Button 
                   onClick={handleCreateProject}
                   disabled={!projectName.trim() || !projectDescription.trim() || isCreating}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  className="w-full"
                 >
                   {isCreating ? (
                     <>
@@ -201,7 +207,7 @@ export default function Onboarding() {
             </Card>
 
             {/* Import Existing Project */}
-            <Card className="bg-white/10 backdrop-blur-md border-white/20 text-white">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <FolderOpen className="w-5 h-5" />
@@ -213,54 +219,7 @@ export default function Onboarding() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-2 text-sm text-white/70">
-                    <FileText className="w-4 h-4" />
-                    <span>Source code analysis</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-white/70">
-                    <Code className="w-4 h-4" />
-                    <span>Insight File generation</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-white/70">
-                    <Brain className="w-4 h-4" />
-                    <span>AI context understanding</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="cursor-pointer">
-                    <div className="border-2 border-dashed border-white/30 rounded-lg p-6 text-center hover:border-white/50 transition-colors">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-white/60" />
-                      <p className="text-white/80 font-medium">Click to select files</p>
-                      <p className="text-sm text-white/60">or drag and drop</p>
-                      <input
-                        type="file"
-                        multiple
-                        accept=".json,.yaml,.yml,.js,.ts,.jsx,.tsx"
-                        onChange={handleImportProject}
-                        className="hidden"
-                      />
-                    </div>
-                  </label>
-
-                  <div className="flex space-x-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={handleExportTemplate}
-                          className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Template
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Download a template to get started</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
+                  <GitImport />
                 </div>
               </CardContent>
             </Card>

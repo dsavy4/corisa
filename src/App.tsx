@@ -7,11 +7,15 @@ import LandingPage from './components/LandingPage';
 import ChatInterface from './components/ChatInterface';
 import InsightSidebar from './components/InsightSidebar';
 import InsightEditor from './components/InsightEditor';
+import ContextManager from './components/ContextManager';
 import YAMLEditor from './components/YAMLEditor';
 import CodeGenerator from './components/CodeGenerator';
 import SchemaSummary from './components/SchemaSummary';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorToast from './components/ErrorToast';
+import ModPlanDrawer from './components/ModPlanDrawer';
+import ThemeToggleFab from './components/ThemeToggleFab';
+import Wizard from './components/Wizard';
 
 function App() {
   const { 
@@ -33,7 +37,7 @@ function App() {
       case 'landing':
         return <LandingPage />;
       case 'chat':
-        return <ChatInterface />;
+        return <Wizard />;
       case 'context':
         return (
           <div className="flex h-full">
@@ -47,6 +51,8 @@ function App() {
         return <CodeGenerator />;
       case 'preview':
         return <SchemaSummary />;
+      case 'memory':
+        return <ContextManager />;
       default:
         return <LandingPage />;
     }
@@ -54,27 +60,31 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark">
-      <div className="min-h-screen bg-background">
-        {/* Landing Page */}
-        {currentView === 'landing' && <LandingPage />}
-        
-        {/* Onboarding */}
-        {!isProjectLoaded && currentView !== 'landing' && <Onboarding />}
-        
-        {/* Main App */}
-        {isProjectLoaded && currentView !== 'landing' && (
-          <>
-            {/* Header */}
-            <Header />
-            
-            {/* Main Content */}
-            <main className="flex-1 h-[calc(100vh-80px)]">
-              <div className="fade-in h-full">
-                {renderCurrentView()}
-              </div>
-            </main>
-          </>
-        )}
+             <div className="min-h-screen bg-background">
+        {/* Global Floating Theme Toggle */}
+        <ThemeToggleFab />
+         {/* Landing Page */}
+         {currentView === 'landing' && <LandingPage />}
+         
+         {/* Onboarding */}
+         {!isProjectLoaded && currentView !== 'landing' && <Onboarding />}
+         
+         {/* Main App */}
+         {isProjectLoaded && currentView !== 'landing' && (
+           <>
+             {/* Header */}
+             <Header />
+             
+             {/* Main Content */}
+             <main className="flex-1 h-[calc(100vh-80px)] relative">
+               <div className="fade-in h-full">
+                 {renderCurrentView()}
+               </div>
+                                                               {/* Mod Plan Drawer FAB */}
+                  <ModPlanDrawer />
+             </main>
+           </>
+         )}
 
         {/* Loading Overlay */}
         {isLoading && (

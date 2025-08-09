@@ -11,6 +11,7 @@ import {
   Activity,
   Calendar
 } from 'lucide-react';
+import GeneratedPreview from './GeneratedPreview';
 
 export default function SchemaSummary() {
   const { schema, getSchemaSummary } = useCorisaStore();
@@ -131,7 +132,7 @@ export default function SchemaSummary() {
                   {schema.app.metadata.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-xs"
+                      className="px-2 py-1 bg-muted text-foreground/70 rounded text-xs"
                     >
                       {tag}
                     </span>
@@ -179,6 +180,14 @@ export default function SchemaSummary() {
             </div>
           );
         })}
+      </div>
+
+      {/* Generated Preview */}
+      <div className="ai-card mb-6">
+        <h3 className="text-lg font-semibold">Generated Preview</h3>
+        <div className="mt-3 h-[480px]">
+          <GeneratedPreview />
+        </div>
       </div>
 
       {/* Detailed Sections */}
@@ -232,9 +241,9 @@ export default function SchemaSummary() {
                   <div className="flex flex-wrap gap-1">
                     {service.methods.slice(0, 3).map((method, methodIndex) => (
                       <span
-                        key={methodIndex}
-                        className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-xs"
-                      >
+                          key={methodIndex}
+                          className="px-2 py-1 bg-muted text-foreground/70 rounded text-xs"
+                        >
                         {method.name}
                       </span>
                     ))}

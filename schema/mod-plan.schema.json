@@ -1,0 +1,149 @@
+{
+  "$id": "https://corisa.ai/schema/mod-plan.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Corisa Mod Plan",
+  "type": "object",
+  "required": ["version", "operations"],
+  "properties": {
+    "version": { "type": "string" },
+    "operations": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["op", "collection", "item"],
+            "properties": {
+              "op": { "const": "upsert_entity" },
+              "collection": {
+                "type": "string",
+                "enum": [
+                  "models",
+                  "repositories",
+                  "services",
+                  "pages",
+                  "sections",
+                  "components",
+                  "buttons"
+                ]
+              },
+              "item": { "type": "object", "minProperties": 1 },
+              "guards": { "$ref": "#/definitions/guards" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "collection", "id", "changes"],
+            "properties": {
+              "op": { "const": "update_fields" },
+              "collection": {
+                "type": "string",
+                "enum": [
+                  "models",
+                  "repositories",
+                  "services",
+                  "pages",
+                  "sections",
+                  "components",
+                  "buttons"
+                ]
+              },
+              "id": { "type": "string" },
+              "changes": { "type": "object", "minProperties": 1 },
+              "guards": { "$ref": "#/definitions/guards" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "collection", "id"],
+            "properties": {
+              "op": { "const": "remove_entity" },
+              "collection": {
+                "type": "string",
+                "enum": [
+                  "models",
+                  "repositories",
+                  "services",
+                  "pages",
+                  "sections",
+                  "components",
+                  "buttons"
+                ]
+              },
+              "id": { "type": "string" },
+              "guards": { "$ref": "#/definitions/guards" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "collection", "oldId", "newId"],
+            "properties": {
+              "op": { "const": "rename_entity" },
+              "collection": {
+                "type": "string",
+                "enum": [
+                  "models",
+                  "repositories",
+                  "services",
+                  "pages",
+                  "sections",
+                  "components",
+                  "buttons"
+                ]
+              },
+              "oldId": { "type": "string" },
+              "newId": { "type": "string" },
+              "guards": { "$ref": "#/definitions/guards" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "parentCollection", "parentId", "path", "ref"],
+            "properties": {
+              "op": { "const": "link_ref" },
+              "parentCollection": { "type": "string", "enum": ["pages", "sections", "components", "buttons"] },
+              "parentId": { "type": "string" },
+              "path": { "type": "string" },
+              "ref": { "type": "string" },
+              "guards": { "$ref": "#/definitions/guards" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "parentCollection", "parentId", "path", "ref"],
+            "properties": {
+              "op": { "const": "unlink_ref" },
+              "parentCollection": { "type": "string", "enum": ["pages", "sections", "components", "buttons"] },
+              "parentId": { "type": "string" },
+              "path": { "type": "string" },
+              "ref": { "type": "string" },
+              "guards": { "$ref": "#/definitions/guards" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["op", "parentCollection", "parentId", "path", "order"],
+            "properties": {
+              "op": { "const": "reorder_refs" },
+              "parentCollection": { "type": "string", "enum": ["pages", "sections", "components", "buttons"] },
+              "parentId": { "type": "string" },
+              "path": { "type": "string" },
+              "order": { "type": "array", "items": { "type": "string" } },
+              "guards": { "$ref": "#/definitions/guards" }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "guards": {
+      "type": "object",
+      "properties": {
+        "ifMissing": { "type": "boolean" },
+        "ifExists": { "type": "boolean" },
+        "assert": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -17,12 +17,16 @@ import {
   AIGenerationContext
 } from '../types/insights';
 import { generateYAMLFromPrompt, generateCodeFromSchema } from '../lib/ai-engine';
+import modPlanSchema from '../../schema/mod-plan.schema.json';
+import { SchemaValidator } from '../lib/schema-validator';
+import { buildPlanFromModifications } from '../lib/mod-plan-builder';
+import { applyModPlan } from '../lib/op-applier';
 
 interface CorisaStore {
   // State
   schema: CorisaSchema;
   chatHistory: ChatMessage[];
-  currentView: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context';
+  currentView: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context' | 'memory';
   isLoading: boolean;
   error: string | null;
   yamlEditor: YAMLEditorState;
@@ -39,8 +43,10 @@ interface CorisaStore {
   updateSchema: (schema: CorisaSchema) => void;
   processPrompt: (prompt: string) => Promise<void>;
   generateCode: (request: any) => Promise<CodeGenerationResult>;
+  applyModPlan: (plan: any) => { success: boolean; report: any };
+  applyModifications: (mods: Partial<CorisaSchema>) => { success: boolean; report: any };
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-  setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context') => void;
+  setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context' | 'memory') => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   updateYAMLEditor: (content: string) => void;
@@ -64,6 +70,7 @@ interface CorisaStore {
   importInsightFiles: (content: string) => void;
   getInsightsForAI: () => string;
   analyzeAIContext: (prompt: string) => AIGenerationContext;
+  quickStartFromPrompt: (prompt: string) => Promise<void>;
 }
 
 const createInitialSchema = (): CorisaSchema => ({
@@ -176,7 +183,7 @@ export const useCorisaStore = create<CorisaStore>()(
         },
 
         processPrompt: async (prompt: string) => {
-          const { schema, addChatMessage, setLoading, setError, updateSchema, analyzeAIContext } = get();
+          const { schema, addChatMessage, setLoading, setError, updateSchema, analyzeAIContext, applyModifications, setCurrentView } = get();
           
           try {
             setLoading(true);
@@ -195,10 +202,16 @@ export const useCorisaStore = create<CorisaStore>()(
             const result = await generateYAMLFromPrompt(prompt, schema);
             
             if (result.success) {
-              // Merge modifications with current schema
-              const updatedSchema = mergeSchemaModifications(schema, result.modifications);
-              updateSchema(updatedSchema);
-              
+              // Build and apply a plan from modifications for safety
+              const applyRes = applyModifications(result.modifications);
+              if (!applyRes.success) {
+                const details = applyRes.report?.errors ? String(applyRes.report.errors.join('; ')) : 'Unknown error';
+                setError('Failed to apply plan: ' + details);
+              } else {
+                // Navigate to preview so changes are visible immediately
+                setCurrentView('preview');
+              }
+
               // Add AI response to chat with context
               addChatMessage({
                 type: 'ai',
@@ -240,6 +253,52 @@ export const useCorisaStore = create<CorisaStore>()(
           return await generateCodeFromSchema(schema, request);
         },
 
+        applyModPlan: (plan: any) => {
+          try {
+            const validator = new SchemaValidator(modPlanSchema as any);
+            const valid = validator.validateModPlan(plan);
+            if (!valid.valid) {
+              return { success: false, report: { errors: valid.errors } };
+            }
+            const { schema, report } = applyModPlan(get().schema, plan);
+            // Fix-up: auto-create placeholder sections for any missing references
+            const sectionIds = new Set(schema.sections.map(s => s.id));
+            const placeholders: any[] = [];
+            schema.pages.forEach(p => {
+              (p.sections || []).forEach(ref => {
+                if (!sectionIds.has(ref)) {
+                  sectionIds.add(ref);
+                  placeholders.push({
+                    id: ref,
+                    title: ref.replace(/_/g, ' '),
+                    description: 'Auto-created placeholder section',
+                    type: 'card',
+                    components: [],
+                    layout: 'vertical',
+                    metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+                  });
+                }
+              });
+            });
+            if (placeholders.length > 0) {
+              schema.sections = [...schema.sections, ...placeholders];
+            }
+            const referential = validator.checkReferentialIntegrity(schema);
+            if (!referential.valid) {
+              return { success: false, report: { errors: referential.errors } };
+            }
+            get().updateSchema(schema);
+            return { success: true, report };
+          } catch (e: any) {
+            return { success: false, report: { errors: [String(e?.message || e)] } };
+          }
+        },
+
+        applyModifications: (mods: Partial<CorisaSchema>) => {
+          const plan = buildPlanFromModifications(mods, get().schema);
+          return get().applyModPlan(plan);
+        },
+
         addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
           const newMessage: ChatMessage = {
             ...message,
@@ -252,7 +311,7 @@ export const useCorisaStore = create<CorisaStore>()(
           }));
         },
 
-        setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context') => {
+        setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context' | 'memory') => {
           set({ currentView: view });
         },
 
@@ -363,7 +422,13 @@ export const useCorisaStore = create<CorisaStore>()(
             currentProject: newProject,
             insightFiles: [],
             selectedInsightFile: null,
-            isProjectLoaded: true
+            isProjectLoaded: true,
+            // Reset core app state for a clean start
+            schema: createInitialSchema(),
+            chatHistory: [],
+            aiGenerationContext: null,
+            error: null,
+            currentView: 'chat'
           });
         },
 
@@ -515,39 +580,36 @@ export const useCorisaStore = create<CorisaStore>()(
           const referencedInsights: AIInsightReference[] = [];
           const missingInsights: string[] = [];
 
-          // Simple keyword matching to find relevant insights
-          const promptLower = prompt.toLowerCase();
-          
+          // Token-based matching
+          const tokens = prompt.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+          const tokenSet = new Set(tokens);
+
           insightFiles.forEach(file => {
-            const contentLower = file.content.toLowerCase();
-            const nameLower = file.displayName.toLowerCase();
-            
-            // Check if insight is relevant based on content and name
-            const relevance = 
-              contentLower.includes(promptLower) || 
-              nameLower.includes(promptLower) ? 'high' :
-              contentLower.includes(promptLower.split(' ')[0]) ? 'medium' : 'low';
-            
+            const contentLower = (file.content || '').toLowerCase();
+            const nameLower = (file.displayName || '').toLowerCase();
+            let score = 0;
+            tokenSet.forEach(t => {
+              if (t.length >= 3 && (contentLower.includes(t) || nameLower.includes(t))) score += 1;
+            });
+            let relevance: 'high' | 'medium' | 'low' = score >= 3 ? 'high' : score >= 1 ? 'medium' : 'low';
+            // Always prioritize Project Overview as at least medium relevance
+            if (file.type === 'project-overview' && relevance === 'low') relevance = 'medium';
             if (relevance !== 'low') {
               referencedInsights.push({
                 insightId: file.id,
                 insightName: file.displayName,
                 relevance,
-                context: `Relevant content from ${file.displayName}`
+                context: `Matched ${score} keywords` 
               });
             }
           });
 
           // Suggest missing insights based on prompt
-          if (promptLower.includes('login') || promptLower.includes('auth')) {
-            if (!insightFiles.find(f => f.type === 'features-spec')) {
-              missingInsights.push('Features Specification');
-            }
+          if ((tokens.includes('login') || tokens.includes('auth')) && !insightFiles.find(f => f.type === 'features-spec')) {
+            missingInsights.push('Features Specification');
           }
-          if (promptLower.includes('api') || promptLower.includes('endpoint')) {
-            if (!insightFiles.find(f => f.type === 'api-specification')) {
-              missingInsights.push('API Specification');
-            }
+          if ((tokens.includes('api') || tokens.includes('endpoint')) && !insightFiles.find(f => f.type === 'api-specification')) {
+            missingInsights.push('API Specification');
           }
 
           const contextSummary = referencedInsights.length > 0 
@@ -562,6 +624,52 @@ export const useCorisaStore = create<CorisaStore>()(
 
           set({ aiGenerationContext: aiContext });
           return aiContext;
+        },
+
+        // NEW: Quick start from a single prompt
+        quickStartFromPrompt: async (prompt: string) => {
+          const { isProjectLoaded, createNewProject, addInsightFile, generateInsightFileContent, setCurrentView, processPrompt, updateInsightFile } = get();
+
+          // Ensure a project exists
+          if (!isProjectLoaded) {
+            createNewProject('New Project', prompt.slice(0, 2000), 'new');
+          }
+
+          // Seed essential insight files if missing
+          const requiredTypes: InsightFileType[] = ['project-overview', 'features-spec', 'current-progress'];
+          const existing = get().insightFiles;
+
+          for (const type of requiredTypes) {
+            if (!existing.find(f => f.type === type)) {
+              addInsightFile(type);
+            }
+          }
+
+          // Seed Overview and Features with the user's prompt for immediate context
+          const refreshed = get().insightFiles;
+          const overview = refreshed.find(f => f.type === 'project-overview');
+          const features = refreshed.find(f => f.type === 'features-spec');
+
+          if (overview) {
+            const seeded = `# Project Overview\n\n## Description\n${prompt}\n\n## Goals\n- Clarify scope and features\n- Establish initial entities (pages, sections, services)\n`;
+            updateInsightFile(overview.id, { content: seeded });
+          }
+          if (features) {
+            const seeded = `# Features Specification\n\n## From description\n${prompt}\n\n## Initial Features\n- Define core entities\n- Generate CRUD skeletons`;
+            updateInsightFile(features.id, { content: seeded });
+          }
+
+          // Optionally, generate AI content to expand
+          if (overview) {
+            await generateInsightFileContent(overview.id, `Refine the Project Overview using this description: ${prompt}`);
+          }
+          if (features) {
+            await generateInsightFileContent(features.id, `List features and user stories based on: ${prompt}`);
+          }
+
+          // Switch to chat and kick off AI planning for schema/code
+          setCurrentView('chat');
+          await processPrompt(prompt);
         }
       }),
       { 

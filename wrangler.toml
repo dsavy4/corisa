@@ -5,10 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 # Pages configuration
 pages_build_output_dir = "dist"
 
-# Build configuration
-[build]
-command = "npm run build"
-
-# Environment variables (if needed)
+# Environment variables
 [vars]
 NODE_ENV = "production"
+# Set this in Cloudflare Pages project settings
+OPENAI_API_KEY = ""
+CLOUDFLARE_API_TOKEN = ""
+CLOUDFLARE_ACCOUNT_ID = ""

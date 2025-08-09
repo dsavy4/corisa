@@ -5,6 +5,7 @@ import {
   PromptAnalysis,
   Page, Section, Component, Service, Repository, Button, Model
 } from '../types/corisa';
+import planSchemaJson from '../../schema/mod-plan.schema.json';
 
 export class CorisaAIEngine {
   private static instance: CorisaAIEngine;
@@ -23,13 +24,54 @@ export class CorisaAIEngine {
       // Step 1: Analyze the prompt
       const analysis = await this.analyzePrompt(prompt);
       
-      // Step 2: Generate modifications based on analysis
-      const modifications = await this.generateModifications(prompt, analysis, currentSchema);
+      // Step 2 (new): Ask planner function for a Mod Plan
+      const schemaSummary = {
+        pages: currentSchema.pages.map(p => ({ id: p.id, route: p.route, sections: p.sections.length })),
+        sections: currentSchema.sections.length,
+        services: currentSchema.services.length,
+        repositories: currentSchema.repositories.length,
+        models: Object.keys(currentSchema.models)
+      };
+      let plan: any | null = null;
+      try {
+        const resp = await fetch('/api/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, schemaSummary, planSchema: planSchemaJson })
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          plan = data.plan;
+        }
+      } catch {}
+
+      // Step 3: If plan exists, convert to modifications; else, fallback to local generator
+      let modifications: Partial<CorisaSchema> = {};
+      if (plan && plan.operations && Array.isArray(plan.operations)) {
+        // Convert plan operations to modifications (simple upsert aggregation)
+        const mods: Partial<CorisaSchema> = { pages: [], sections: [], services: [], repositories: [], components: [] } as any;
+        for (const op of plan.operations) {
+          if (op.op === 'upsert_entity') {
+            switch (op.collection) {
+              case 'pages': (mods.pages as any).push(op.item); break;
+              case 'sections': (mods.sections as any).push(op.item); break;
+              case 'services': (mods.services as any).push(op.item); break;
+              case 'repositories': (mods.repositories as any).push(op.item); break;
+              case 'components': (mods.components as any).push(op.item); break;
+              case 'models': mods.models = { ...(mods.models || {}), [op.item.id]: op.item }; break;
+            }
+          }
+        }
+        modifications = mods;
+      } else {
+        // Local fallback
+        modifications = this.generateModificationsForNew(prompt, analysis, currentSchema);
+      }
       
-      // Step 3: Validate the modifications
+      // Step 4: Validate the modifications
       const validation = await this.validateModifications(modifications, currentSchema);
       
-      // Step 4: Prepare result
+      // Step 5: Prepare result
       const result: GenerationResult = {
         success: validation.valid,
         modifications,
@@ -63,13 +105,13 @@ export class CorisaAIEngine {
     
     // Analyze intent
     let intent: PromptAnalysis['intent'] = 'query';
-    if (lowerPrompt.includes('create') || lowerPrompt.includes('add') || lowerPrompt.includes('new')) {
+    if (/(create|add|new|build|make|scaffold|design)\b/.test(lowerPrompt)) {
       intent = 'create';
-    } else if (lowerPrompt.includes('modify') || lowerPrompt.includes('change') || lowerPrompt.includes('update')) {
+    } else if (/(modify|change|update)\b/.test(lowerPrompt)) {
       intent = 'modify';
-    } else if (lowerPrompt.includes('delete') || lowerPrompt.includes('remove')) {
+    } else if (/(delete|remove)\b/.test(lowerPrompt)) {
       intent = 'delete';
-    } else if (lowerPrompt.includes('evolve') || lowerPrompt.includes('enhance') || lowerPrompt.includes('improve')) {
+    } else if (/(evolve|enhance|improve)\b/.test(lowerPrompt)) {
       intent = 'evolve';
     }
 
@@ -82,7 +124,7 @@ export class CorisaAIEngine {
       'repository': ['repository', 'data', 'database', 'model'],
       'component': ['component', 'ui', 'button', 'input', 'form'],
       'menu': ['menu', 'navigation', 'sidebar'],
-      'model': ['model', 'entity', 'data structure']
+      'model': ['model', 'entity', 'data structure', 'property', 'tenant', 'lease', 'unit', 'maintenance']
     };
 
     for (const [entity, keywords] of Object.entries(entityKeywords)) {
@@ -95,17 +137,18 @@ export class CorisaAIEngine {
     const actions: string[] = [];
     const actionKeywords = {
       'authentication': ['login', 'auth', 'user', 'password', 'signin', 'signup'],
-      'crud': ['create', 'read', 'update', 'delete', 'crud'],
-      'navigation': ['navigate', 'route', 'link', 'menu'],
-      'validation': ['validate', 'check', 'verify'],
-      'search': ['search', 'filter', 'find'],
-      'export': ['export', 'download', 'print']
+      'crud': ['create', 'read', 'update', 'delete', 'crud', 'manage', 'list', 'detail', 'edit']
     };
 
     for (const [action, keywords] of Object.entries(actionKeywords)) {
       if (keywords.some(keyword => lowerPrompt.includes(keyword))) {
         actions.push(action);
       }
+    }
+
+    // Heuristic: mention of domain nouns implies CRUD
+    if (!actions.includes('crud') && /(property|tenant|lease|unit|work order|maintenance)/.test(lowerPrompt)) {
+      actions.push('crud');
     }
 
     return {
@@ -140,11 +183,71 @@ export class CorisaAIEngine {
   ): Partial<CorisaSchema> {
     const modifications: Partial<CorisaSchema> = {};
 
+    // Fallback skeleton if nothing recognized but user wants to build software/app
+    const wantsApp = /(build|make|create).*(app|application|software)/.test(prompt.toLowerCase());
+    if (analysis.intent === 'create' && analysis.actions.length === 0 && wantsApp) {
+      const basePages: Page[] = [
+        {
+          id: 'getting_started_page',
+          title: 'Getting Started',
+          description: 'Welcome and next steps',
+          route: '/app',
+          sections: ['getting_started_section'],
+          layout: 'default',
+          metadata: { requiresAuth: false, permissions: [], breadcrumbs: ['Getting Started'], seo: { title: 'Getting Started', description: 'Welcome', keywords: ['getting-started'] } }
+        },
+        {
+          id: 'properties_page',
+          title: 'Properties',
+          description: 'Manage properties',
+          route: '/properties',
+          sections: ['properties_list_section'],
+          layout: 'list',
+          metadata: { requiresAuth: true, permissions: ['read_property'], breadcrumbs: ['Properties'], seo: { title: 'Properties', description: 'List properties', keywords: ['property', 'list'] } }
+        }
+      ];
+      const baseSections: Section[] = [
+        { id: 'getting_started_section', title: 'Getting Started', description: 'Overview and next steps', type: 'card', components: [], layout: 'vertical', metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false } },
+        { id: 'properties_list_section', title: 'Properties List', description: 'Table of properties', type: 'list', components: [], layout: 'vertical', metadata: { responsive: true, collapsible: false, sortable: true, filterable: true, pagination: true } }
+      ];
+      modifications.pages = [...(currentSchema.pages || []), ...basePages];
+      modifications.sections = [...(currentSchema.sections || []), ...baseSections];
+      modifications.models = { ...currentSchema.models, property: this.generateModel('property') };
+      modifications.repositories = [...(currentSchema.repositories || []), this.generateCRUDRepository('property')];
+      modifications.services = [...(currentSchema.services || []), this.generateCRUDService('property')];
+      return modifications;
+    }
+
     // Handle authentication requests
     if (analysis.actions.includes('authentication')) {
+      const authPages = this.generateAuthPages();
+      const authSections: Section[] = [
+        {
+          id: 'login_form_section',
+          title: 'Login Form',
+          description: 'User login form',
+          type: 'form',
+          components: [],
+          layout: 'vertical',
+          metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+        },
+        {
+          id: 'register_form_section',
+          title: 'Register Form',
+          description: 'User registration form',
+          type: 'form',
+          components: [],
+          layout: 'vertical',
+          metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+        }
+      ];
       modifications.pages = [
         ...(currentSchema.pages || []),
-        ...this.generateAuthPages()
+        ...authPages
+      ];
+      modifications.sections = [
+        ...(currentSchema.sections || []),
+        ...authSections
       ];
       modifications.services = [
         ...(currentSchema.services || []),
@@ -158,25 +261,50 @@ export class CorisaAIEngine {
 
     // Handle CRUD operations
     if (analysis.actions.includes('crud')) {
-      const entityName = this.extractEntityName(prompt);
-      if (entityName) {
-        modifications.pages = [
-          ...(currentSchema.pages || []),
-          ...this.generateCRUDPages(entityName)
-        ];
-        modifications.services = [
-          ...(currentSchema.services || []),
-          this.generateCRUDService(entityName)
-        ];
-        modifications.repositories = [
-          ...(currentSchema.repositories || []),
-          this.generateCRUDRepository(entityName)
-        ];
-        modifications.models = {
-          ...currentSchema.models,
-          [entityName]: this.generateModel(entityName)
-        };
-      }
+      const entityName = this.extractEntityName(prompt) || 'property';
+      const pages = this.generateCRUDPages(entityName);
+      const listSectionId = `${entityName}_list_section`;
+      const detailSectionId = `${entityName}_detail_section`;
+      const sections: Section[] = [
+        {
+          id: listSectionId,
+          title: `${entityName} List`,
+          description: `List ${entityName}s`,
+          type: 'list',
+          components: [],
+          layout: 'vertical',
+          metadata: { responsive: true, collapsible: false, sortable: true, filterable: true, pagination: true }
+        },
+        {
+          id: detailSectionId,
+          title: `${entityName} Detail`,
+          description: `Detail view for ${entityName}`,
+          type: 'card',
+          components: [],
+          layout: 'vertical',
+          metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+        }
+      ];
+      modifications.pages = [
+        ...(currentSchema.pages || []),
+        ...pages
+      ];
+      modifications.sections = [
+        ...(currentSchema.sections || []),
+        ...sections
+      ];
+      modifications.services = [
+        ...(currentSchema.services || []),
+        this.generateCRUDService(entityName)
+      ];
+      modifications.repositories = [
+        ...(currentSchema.repositories || []),
+        this.generateCRUDRepository(entityName)
+      ];
+      modifications.models = {
+        ...currentSchema.models,
+        [entityName]: this.generateModel(entityName)
+      };
     }
 
     return modifications;
@@ -638,8 +766,8 @@ export class CorisaAIEngine {
 
   private generateExplanation(analysis: PromptAnalysis, modifications: Partial<CorisaSchema>): string {
     const newEntities = this.extractNewEntities(modifications);
-    
-    return `Based on your request, I've analyzed the intent as "${analysis.intent}" and identified ${analysis.entities.length} entity types and ${analysis.actions.length} actions. I've generated ${newEntities.length} new entities to fulfill your requirements. The modifications maintain consistency with your existing application structure and follow established patterns.`;
+    const summary = `Intent: ${analysis.intent}. Entities: ${analysis.entities.join(', ') || 'none'}. Actions: ${analysis.actions.join(', ') || 'none'}.`;
+    return `${summary} Created/updated: ${newEntities.join(', ') || 'none'}.`;
   }
 }
 
