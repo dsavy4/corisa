@@ -183,7 +183,7 @@ export const useCorisaStore = create<CorisaStore>()(
         },
 
         processPrompt: async (prompt: string) => {
-          const { schema, addChatMessage, setLoading, setError, updateSchema, analyzeAIContext, applyModifications } = get();
+          const { schema, addChatMessage, setLoading, setError, updateSchema, analyzeAIContext, applyModifications, setCurrentView } = get();
           
           try {
             setLoading(true);
@@ -207,6 +207,9 @@ export const useCorisaStore = create<CorisaStore>()(
               if (!applyRes.success) {
                 const details = applyRes.report?.errors ? String(applyRes.report.errors.join('; ')) : 'Unknown error';
                 setError('Failed to apply plan: ' + details);
+              } else {
+                // Navigate to preview so changes are visible immediately
+                setCurrentView('preview');
               }
 
               // Add AI response to chat with context
