@@ -15,6 +15,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import PromptStarter from './PromptStarter';
+import ThemeToggle from './ThemeToggle';
 
 export default function LandingPage() {
   const { setCurrentView } = useCorisaStore();
@@ -119,11 +120,14 @@ export default function LandingPage() {
               AI tools that actually understand what you're building and why.
             </p>
             
-            {/* CTA Buttons */}
-            <div className="max-w-3xl mx-auto mt-8">
-              {/* Prompt-first starter */}
-              <div className="bg-white/5 backdrop-blur-md p-4 rounded-xl border border-white/20">
-                <div className="mb-3 text-left text-white/80 font-medium">Start by describing your product</div>
+            {/* Controls + Prompt */}
+            <div className="max-w-4xl mx-auto mt-8 space-y-4">
+              <div className="flex items-center justify-end">
+                {/* @ts-ignore */}
+                <ThemeToggle />
+              </div>
+              <div className="bg-card border border-border p-4 rounded-xl">
+                <div className="mb-3 text-left text-muted-foreground font-medium">Start by describing your product</div>
                 <PromptStarter />
               </div>
             </div>
