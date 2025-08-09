@@ -102,7 +102,7 @@ export default function LandingPage() {
               <Brain className="w-10 h-10 text-white" />
             </div>
             <div className="text-left">
-              <h1 className="text-6xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+              <h1 className="text-6xl font-bold">
                 Corisa AI
               </h1>
               <p className="text-xl text-white/80">AI-Native Development Platform</p>
@@ -244,7 +244,7 @@ export default function LandingPage() {
                          <Button 
               size="lg"
               onClick={() => setCurrentView('chat')}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
+              className="text-white px-8 py-3 text-lg"
             >
               Get Started Now
             </Button>

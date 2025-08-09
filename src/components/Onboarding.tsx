@@ -102,7 +102,7 @@ export default function Onboarding() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-4xl w-full space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
@@ -111,7 +111,7 @@ export default function Onboarding() {
                 <Brain className="w-8 h-8 text-white" />
               </div>
               <div className="text-left">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold">
                   Corisa AI
                 </h1>
                 <p className="text-lg text-white/80">Revolutionary Abstract Coding Platform</p>
@@ -183,7 +183,7 @@ export default function Onboarding() {
                 <Button 
                   onClick={handleCreateProject}
                   disabled={!projectName.trim() || !projectDescription.trim() || isCreating}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  className="w-full"
                 >
                   {isCreating ? (
                     <>

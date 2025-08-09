@@ -127,8 +127,8 @@ export default function ChatInterface() {
             <div className="flex items-start space-x-3">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                 message.type === 'user' 
-                  ? 'bg-purple-600' 
-                  : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                  ? 'bg-muted' 
+                  : 'bg-muted'
               }`}>
                 {message.type === 'user' ? (
                   <span className="text-white text-sm font-medium">U</span>
@@ -149,7 +149,7 @@ export default function ChatInterface() {
                 {message.type === 'ai' && message.aiContext && (
                   <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border/50">
                     <div className="flex items-center space-x-2 mb-2">
-                      <Brain className="w-4 h-4 text-purple-600" />
+                      <Brain className="w-4 h-4" />
                       <span className="text-sm font-medium text-purple-600">AI Context</span>
                     </div>
                     

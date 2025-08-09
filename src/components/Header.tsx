@@ -63,7 +63,7 @@ export default function Header() {
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-purple-600 bg-clip-text text-transparent">Corisa AI</h1>
+                <h1 className="text-2xl font-bold">Corisa AI</h1>
                 <p className="text-sm text-muted-foreground">Revolutionary Abstract Coding Platform</p>
               </div>
             </div>
