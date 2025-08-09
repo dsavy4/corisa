@@ -11,6 +11,7 @@ import {
   Activity,
   Calendar
 } from 'lucide-react';
+import GeneratedPreview from './GeneratedPreview';
 
 export default function SchemaSummary() {
   const { schema, getSchemaSummary } = useCorisaStore();
@@ -179,6 +180,14 @@ export default function SchemaSummary() {
             </div>
           );
         })}
+      </div>
+
+      {/* Generated Preview */}
+      <div className="ai-card mb-6">
+        <h3 className="text-lg font-semibold">Generated Preview</h3>
+        <div className="mt-3 h-[480px]">
+          <GeneratedPreview />
+        </div>
       </div>
 
       {/* Detailed Sections */}
