@@ -92,7 +92,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-background dark:bg-gradient-to-br dark:from-slate-900 dark:via-purple-900 dark:to-slate-900">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center space-y-8">
@@ -132,7 +132,7 @@ export default function LandingPage() {
       </div>
 
       {/* Problem Section */}
-      <div className="bg-white/5 backdrop-blur-sm py-16">
+      <div className="bg-muted/50 dark:bg-white/5 backdrop-blur-sm py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-white mb-4">The Problem</h3>
@@ -188,7 +188,7 @@ export default function LandingPage() {
       </div>
 
       {/* Features Section */}
-      <div className="bg-white/5 backdrop-blur-sm py-16">
+      <div className="bg-muted/50 dark:bg-white/5 backdrop-blur-sm py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-white mb-4">How It Works</h3>
