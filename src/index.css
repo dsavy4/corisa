@@ -58,20 +58,9 @@
   }
 }
 
-/* Custom styles */
-.fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Developer-friendly card */
+.ai-card {
+  @apply bg-card border border-border rounded-lg p-4;
 }
 
 /* Dark mode specific styles */
@@ -87,3 +76,10 @@
 .light .bg-background {
   background-color: hsl(var(--background));
 }
+
+/* Light-mode overrides for legacy white text utilities */
+.light .text-white { color: hsl(var(--foreground)) !important; }
+.light .text-white\/80 { color: hsl(var(--muted-foreground)) !important; }
+.light .text-white\/70 { color: hsl(var(--muted-foreground)) !important; }
+.light .text-white\/60 { color: hsl(var(--muted-foreground)) !important; }
+.light .text-white\/40 { color: hsl(var(--muted-foreground)) !important; }
