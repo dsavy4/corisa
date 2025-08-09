@@ -60,6 +60,8 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark">
              <div className="min-h-screen bg-background">
+        {/* Global Floating Theme Toggle */}
+        <ThemeToggleFab />
          {/* Landing Page */}
          {currentView === 'landing' && <LandingPage />}
          
@@ -77,10 +79,8 @@ function App() {
                <div className="fade-in h-full">
                  {renderCurrentView()}
                </div>
-                                               {/* Mod Plan Drawer FAB */}
-                 <ModPlanDrawer />
-                 {/* Floating Theme Toggle */}
-                 <ThemeToggleFab />
+                                                               {/* Mod Plan Drawer FAB */}
+                  <ModPlanDrawer />
              </main>
            </>
          )}
