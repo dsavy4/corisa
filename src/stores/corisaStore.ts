@@ -257,6 +257,28 @@ export const useCorisaStore = create<CorisaStore>()(
               return { success: false, report: { errors: valid.errors } };
             }
             const { schema, report } = applyModPlan(get().schema, plan);
+            // Fix-up: auto-create placeholder sections for any missing references
+            const sectionIds = new Set(schema.sections.map(s => s.id));
+            const placeholders: any[] = [];
+            schema.pages.forEach(p => {
+              (p.sections || []).forEach(ref => {
+                if (!sectionIds.has(ref)) {
+                  sectionIds.add(ref);
+                  placeholders.push({
+                    id: ref,
+                    title: ref.replace(/_/g, ' '),
+                    description: 'Auto-created placeholder section',
+                    type: 'card',
+                    components: [],
+                    layout: 'vertical',
+                    metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+                  });
+                }
+              });
+            });
+            if (placeholders.length > 0) {
+              schema.sections = [...schema.sections, ...placeholders];
+            }
             const referential = validator.checkReferentialIntegrity(schema);
             if (!referential.valid) {
               return { success: false, report: { errors: referential.errors } };
