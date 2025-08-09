@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useCorisaStore } from '../stores/corisaStore';
 import { Send, Sparkles, Copy, Check, Brain, FileText } from 'lucide-react';
 import AIContextDisplay from './AIContextDisplay';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
 
 export default function ChatInterface() {
   const { chatHistory, processPrompt, isLoading, getInsightsForAI, analyzeAIContext, aiGenerationContext } = useCorisaStore();
@@ -322,21 +324,17 @@ export default function ChatInterface() {
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-4">
         <div className="flex space-x-3">
-          <input
+          <Input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Describe your application or feature in plain English..."
             disabled={isLoading}
-            className="flex-1 bg-background border border-input rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
+          <Button type="submit" disabled={!input.trim() || isLoading}>
             <Send className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
         
         <div className="mt-3 text-xs text-muted-foreground">

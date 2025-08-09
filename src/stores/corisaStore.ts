@@ -285,7 +285,7 @@ export const useCorisaStore = create<CorisaStore>()(
           }));
         },
 
-        setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context') => {
+        setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context' | 'memory') => {
           set({ currentView: view });
         },
 
