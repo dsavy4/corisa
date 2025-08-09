@@ -1,4 +1,4 @@
-import Ajv, { ValidateFunction } from 'ajv'
+import Ajv, { ValidateFunction } from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
 import { ModPlan } from './mod-plan'
 import { CorisaSchema } from '../types/corisa'
