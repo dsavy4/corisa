@@ -26,7 +26,7 @@ interface CorisaStore {
   // State
   schema: CorisaSchema;
   chatHistory: ChatMessage[];
-  currentView: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context';
+  currentView: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context' | 'memory';
   isLoading: boolean;
   error: string | null;
   yamlEditor: YAMLEditorState;
@@ -46,7 +46,7 @@ interface CorisaStore {
   applyModPlan: (plan: any) => { success: boolean; report: any };
   applyModifications: (mods: Partial<CorisaSchema>) => { success: boolean; report: any };
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-  setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context') => void;
+  setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context' | 'memory') => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   updateYAMLEditor: (content: string) => void;

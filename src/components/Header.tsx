@@ -46,6 +46,7 @@ export default function Header() {
     { id: 'landing', label: 'Home', icon: Brain },
     { id: 'chat', label: 'AI Chat', icon: Brain },
     { id: 'context', label: 'Insight Files', icon: FolderOpen },
+    { id: 'memory', label: 'Memory Bank', icon: FolderOpen },
     { id: 'yaml', label: 'YAML Editor', icon: FileText },
     { id: 'code', label: 'Code Generator', icon: Code },
     { id: 'preview', label: 'Schema Preview', icon: Eye },

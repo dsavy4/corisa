@@ -7,6 +7,7 @@ import LandingPage from './components/LandingPage';
 import ChatInterface from './components/ChatInterface';
 import InsightSidebar from './components/InsightSidebar';
 import InsightEditor from './components/InsightEditor';
+import ContextManager from './components/ContextManager';
 import YAMLEditor from './components/YAMLEditor';
 import CodeGenerator from './components/CodeGenerator';
 import SchemaSummary from './components/SchemaSummary';
@@ -47,6 +48,8 @@ function App() {
         return <CodeGenerator />;
       case 'preview':
         return <SchemaSummary />;
+      case 'memory':
+        return <ContextManager />;
       default:
         return <LandingPage />;
     }
