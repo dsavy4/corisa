@@ -63,13 +63,13 @@ export class CorisaAIEngine {
     
     // Analyze intent
     let intent: PromptAnalysis['intent'] = 'query';
-    if (lowerPrompt.includes('create') || lowerPrompt.includes('add') || lowerPrompt.includes('new')) {
+    if (/(create|add|new|build|make|scaffold|design)\b/.test(lowerPrompt)) {
       intent = 'create';
-    } else if (lowerPrompt.includes('modify') || lowerPrompt.includes('change') || lowerPrompt.includes('update')) {
+    } else if (/(modify|change|update)\b/.test(lowerPrompt)) {
       intent = 'modify';
-    } else if (lowerPrompt.includes('delete') || lowerPrompt.includes('remove')) {
+    } else if (/(delete|remove)\b/.test(lowerPrompt)) {
       intent = 'delete';
-    } else if (lowerPrompt.includes('evolve') || lowerPrompt.includes('enhance') || lowerPrompt.includes('improve')) {
+    } else if (/(evolve|enhance|improve)\b/.test(lowerPrompt)) {
       intent = 'evolve';
     }
 
@@ -82,7 +82,7 @@ export class CorisaAIEngine {
       'repository': ['repository', 'data', 'database', 'model'],
       'component': ['component', 'ui', 'button', 'input', 'form'],
       'menu': ['menu', 'navigation', 'sidebar'],
-      'model': ['model', 'entity', 'data structure']
+      'model': ['model', 'entity', 'data structure', 'property', 'tenant', 'lease', 'unit', 'maintenance']
     };
 
     for (const [entity, keywords] of Object.entries(entityKeywords)) {
@@ -95,17 +95,18 @@ export class CorisaAIEngine {
     const actions: string[] = [];
     const actionKeywords = {
       'authentication': ['login', 'auth', 'user', 'password', 'signin', 'signup'],
-      'crud': ['create', 'read', 'update', 'delete', 'crud'],
-      'navigation': ['navigate', 'route', 'link', 'menu'],
-      'validation': ['validate', 'check', 'verify'],
-      'search': ['search', 'filter', 'find'],
-      'export': ['export', 'download', 'print']
+      'crud': ['create', 'read', 'update', 'delete', 'crud', 'manage', 'list', 'detail', 'edit']
     };
 
     for (const [action, keywords] of Object.entries(actionKeywords)) {
       if (keywords.some(keyword => lowerPrompt.includes(keyword))) {
         actions.push(action);
       }
+    }
+
+    // Heuristic: mention of domain nouns implies CRUD
+    if (!actions.includes('crud') && /(property|tenant|lease|unit|work order|maintenance)/.test(lowerPrompt)) {
+      actions.push('crud');
     }
 
     return {
@@ -139,6 +140,41 @@ export class CorisaAIEngine {
     currentSchema: CorisaSchema
   ): Partial<CorisaSchema> {
     const modifications: Partial<CorisaSchema> = {};
+
+    // Fallback skeleton if nothing recognized but user wants to build software/app
+    const wantsApp = /(build|make|create).*(app|application|software)/.test(prompt.toLowerCase());
+    if (analysis.intent === 'create' && analysis.actions.length === 0 && wantsApp) {
+      const basePages: Page[] = [
+        {
+          id: 'home_page',
+          title: 'Home',
+          description: 'Welcome page',
+          route: '/',
+          sections: ['getting_started_section'],
+          layout: 'default',
+          metadata: { requiresAuth: false, permissions: [], breadcrumbs: ['Home'], seo: { title: 'Home', description: 'Welcome', keywords: ['home'] } }
+        },
+        {
+          id: 'properties_page',
+          title: 'Properties',
+          description: 'Manage properties',
+          route: '/properties',
+          sections: ['properties_list_section'],
+          layout: 'list',
+          metadata: { requiresAuth: true, permissions: ['read_property'], breadcrumbs: ['Properties'], seo: { title: 'Properties', description: 'List properties', keywords: ['property', 'list'] } }
+        }
+      ];
+      const baseSections: Section[] = [
+        { id: 'getting_started_section', title: 'Getting Started', description: 'Overview and next steps', type: 'card', components: [], layout: 'vertical', metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false } },
+        { id: 'properties_list_section', title: 'Properties List', description: 'Table of properties', type: 'list', components: [], layout: 'vertical', metadata: { responsive: true, collapsible: false, sortable: true, filterable: true, pagination: true } }
+      ];
+      modifications.pages = [...(currentSchema.pages || []), ...basePages];
+      modifications.sections = [...(currentSchema.sections || []), ...baseSections];
+      modifications.models = { ...currentSchema.models, property: this.generateModel('property') };
+      modifications.repositories = [...(currentSchema.repositories || []), this.generateCRUDRepository('property')];
+      modifications.services = [...(currentSchema.services || []), this.generateCRUDService('property')];
+      return modifications;
+    }
 
     // Handle authentication requests
     if (analysis.actions.includes('authentication')) {
@@ -183,52 +219,50 @@ export class CorisaAIEngine {
 
     // Handle CRUD operations
     if (analysis.actions.includes('crud')) {
-      const entityName = this.extractEntityName(prompt);
-      if (entityName) {
-        const pages = this.generateCRUDPages(entityName);
-        const listSectionId = `${entityName}_list_section`;
-        const detailSectionId = `${entityName}_detail_section`;
-        const sections: Section[] = [
-          {
-            id: listSectionId,
-            title: `${entityName} List`,
-            description: `List ${entityName}s`,
-            type: 'list',
-            components: [],
-            layout: 'vertical',
-            metadata: { responsive: true, collapsible: false, sortable: true, filterable: true, pagination: true }
-          },
-          {
-            id: detailSectionId,
-            title: `${entityName} Detail`,
-            description: `Detail view for ${entityName}`,
-            type: 'card',
-            components: [],
-            layout: 'vertical',
-            metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
-          }
-        ];
-        modifications.pages = [
-          ...(currentSchema.pages || []),
-          ...pages
-        ];
-        modifications.sections = [
-          ...(currentSchema.sections || []),
-          ...sections
-        ];
-        modifications.services = [
-          ...(currentSchema.services || []),
-          this.generateCRUDService(entityName)
-        ];
-        modifications.repositories = [
-          ...(currentSchema.repositories || []),
-          this.generateCRUDRepository(entityName)
-        ];
-        modifications.models = {
-          ...currentSchema.models,
-          [entityName]: this.generateModel(entityName)
-        };
-      }
+      const entityName = this.extractEntityName(prompt) || 'property';
+      const pages = this.generateCRUDPages(entityName);
+      const listSectionId = `${entityName}_list_section`;
+      const detailSectionId = `${entityName}_detail_section`;
+      const sections: Section[] = [
+        {
+          id: listSectionId,
+          title: `${entityName} List`,
+          description: `List ${entityName}s`,
+          type: 'list',
+          components: [],
+          layout: 'vertical',
+          metadata: { responsive: true, collapsible: false, sortable: true, filterable: true, pagination: true }
+        },
+        {
+          id: detailSectionId,
+          title: `${entityName} Detail`,
+          description: `Detail view for ${entityName}`,
+          type: 'card',
+          components: [],
+          layout: 'vertical',
+          metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+        }
+      ];
+      modifications.pages = [
+        ...(currentSchema.pages || []),
+        ...pages
+      ];
+      modifications.sections = [
+        ...(currentSchema.sections || []),
+        ...sections
+      ];
+      modifications.services = [
+        ...(currentSchema.services || []),
+        this.generateCRUDService(entityName)
+      ];
+      modifications.repositories = [
+        ...(currentSchema.repositories || []),
+        this.generateCRUDRepository(entityName)
+      ];
+      modifications.models = {
+        ...currentSchema.models,
+        [entityName]: this.generateModel(entityName)
+      };
     }
 
     return modifications;
