@@ -571,39 +571,36 @@ export const useCorisaStore = create<CorisaStore>()(
           const referencedInsights: AIInsightReference[] = [];
           const missingInsights: string[] = [];
 
-          // Simple keyword matching to find relevant insights
-          const promptLower = prompt.toLowerCase();
-          
+          // Token-based matching
+          const tokens = prompt.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+          const tokenSet = new Set(tokens);
+
           insightFiles.forEach(file => {
-            const contentLower = file.content.toLowerCase();
-            const nameLower = file.displayName.toLowerCase();
-            
-            // Check if insight is relevant based on content and name
-            const relevance = 
-              contentLower.includes(promptLower) || 
-              nameLower.includes(promptLower) ? 'high' :
-              contentLower.includes(promptLower.split(' ')[0]) ? 'medium' : 'low';
-            
+            const contentLower = (file.content || '').toLowerCase();
+            const nameLower = (file.displayName || '').toLowerCase();
+            let score = 0;
+            tokenSet.forEach(t => {
+              if (t.length >= 3 && (contentLower.includes(t) || nameLower.includes(t))) score += 1;
+            });
+            let relevance: 'high' | 'medium' | 'low' = score >= 3 ? 'high' : score >= 1 ? 'medium' : 'low';
+            // Always prioritize Project Overview as at least medium relevance
+            if (file.type === 'project-overview' && relevance === 'low') relevance = 'medium';
             if (relevance !== 'low') {
               referencedInsights.push({
                 insightId: file.id,
                 insightName: file.displayName,
                 relevance,
-                context: `Relevant content from ${file.displayName}`
+                context: `Matched ${score} keywords` 
               });
             }
           });
 
           // Suggest missing insights based on prompt
-          if (promptLower.includes('login') || promptLower.includes('auth')) {
-            if (!insightFiles.find(f => f.type === 'features-spec')) {
-              missingInsights.push('Features Specification');
-            }
+          if ((tokens.includes('login') || tokens.includes('auth')) && !insightFiles.find(f => f.type === 'features-spec')) {
+            missingInsights.push('Features Specification');
           }
-          if (promptLower.includes('api') || promptLower.includes('endpoint')) {
-            if (!insightFiles.find(f => f.type === 'api-specification')) {
-              missingInsights.push('API Specification');
-            }
+          if ((tokens.includes('api') || tokens.includes('endpoint')) && !insightFiles.find(f => f.type === 'api-specification')) {
+            missingInsights.push('API Specification');
           }
 
           const contextSummary = referencedInsights.length > 0 
@@ -622,7 +619,7 @@ export const useCorisaStore = create<CorisaStore>()(
 
         // NEW: Quick start from a single prompt
         quickStartFromPrompt: async (prompt: string) => {
-          const { isProjectLoaded, createNewProject, addInsightFile, generateInsightFileContent, setCurrentView, processPrompt } = get();
+          const { isProjectLoaded, createNewProject, addInsightFile, generateInsightFileContent, setCurrentView, processPrompt, updateInsightFile } = get();
 
           // Ensure a project exists
           if (!isProjectLoaded) {
@@ -639,13 +636,23 @@ export const useCorisaStore = create<CorisaStore>()(
             }
           }
 
-          // Generate content for key insights using the prompt
+          // Seed Overview and Features with the user's prompt for immediate context
           const refreshed = get().insightFiles;
           const overview = refreshed.find(f => f.type === 'project-overview');
           const features = refreshed.find(f => f.type === 'features-spec');
 
           if (overview) {
-            await generateInsightFileContent(overview.id, `Create a clear Project Overview using this description: ${prompt}`);
+            const seeded = `# Project Overview\n\n## Description\n${prompt}\n\n## Goals\n- Clarify scope and features\n- Establish initial entities (pages, sections, services)\n`;
+            updateInsightFile(overview.id, { content: seeded });
+          }
+          if (features) {
+            const seeded = `# Features Specification\n\n## From description\n${prompt}\n\n## Initial Features\n- Define core entities\n- Generate CRUD skeletons`;
+            updateInsightFile(features.id, { content: seeded });
+          }
+
+          // Optionally, generate AI content to expand
+          if (overview) {
+            await generateInsightFileContent(overview.id, `Refine the Project Overview using this description: ${prompt}`);
           }
           if (features) {
             await generateInsightFileContent(features.id, `List features and user stories based on: ${prompt}`);
