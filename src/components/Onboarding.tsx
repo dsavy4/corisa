@@ -164,7 +164,6 @@ export default function Onboarding() {
                     placeholder="My Awesome App"
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                   />
                 </div>
                 
@@ -177,7 +176,6 @@ export default function Onboarding() {
                     value={projectDescription}
                     onChange={(e) => setProjectDescription(e.target.value)}
                     rows={4}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                   />
                 </div>
 
