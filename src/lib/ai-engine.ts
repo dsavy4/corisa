@@ -5,6 +5,7 @@ import {
   PromptAnalysis,
   Page, Section, Component, Service, Repository, Button, Model
 } from '../types/corisa';
+import planSchemaJson from '../../schema/mod-plan.schema.json';
 
 export class CorisaAIEngine {
   private static instance: CorisaAIEngine;
@@ -23,13 +24,54 @@ export class CorisaAIEngine {
       // Step 1: Analyze the prompt
       const analysis = await this.analyzePrompt(prompt);
       
-      // Step 2: Generate modifications based on analysis
-      const modifications = await this.generateModifications(prompt, analysis, currentSchema);
+      // Step 2 (new): Ask planner function for a Mod Plan
+      const schemaSummary = {
+        pages: currentSchema.pages.map(p => ({ id: p.id, route: p.route, sections: p.sections.length })),
+        sections: currentSchema.sections.length,
+        services: currentSchema.services.length,
+        repositories: currentSchema.repositories.length,
+        models: Object.keys(currentSchema.models)
+      };
+      let plan: any | null = null;
+      try {
+        const resp = await fetch('/api/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, schemaSummary, planSchema: planSchemaJson })
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          plan = data.plan;
+        }
+      } catch {}
+
+      // Step 3: If plan exists, convert to modifications; else, fallback to local generator
+      let modifications: Partial<CorisaSchema> = {};
+      if (plan && plan.operations && Array.isArray(plan.operations)) {
+        // Convert plan operations to modifications (simple upsert aggregation)
+        const mods: Partial<CorisaSchema> = { pages: [], sections: [], services: [], repositories: [], components: [] } as any;
+        for (const op of plan.operations) {
+          if (op.op === 'upsert_entity') {
+            switch (op.collection) {
+              case 'pages': (mods.pages as any).push(op.item); break;
+              case 'sections': (mods.sections as any).push(op.item); break;
+              case 'services': (mods.services as any).push(op.item); break;
+              case 'repositories': (mods.repositories as any).push(op.item); break;
+              case 'components': (mods.components as any).push(op.item); break;
+              case 'models': mods.models = { ...(mods.models || {}), [op.item.id]: op.item }; break;
+            }
+          }
+        }
+        modifications = mods;
+      } else {
+        // Local fallback
+        modifications = this.generateModificationsForNew(prompt, analysis, currentSchema);
+      }
       
-      // Step 3: Validate the modifications
+      // Step 4: Validate the modifications
       const validation = await this.validateModifications(modifications, currentSchema);
       
-      // Step 4: Prepare result
+      // Step 5: Prepare result
       const result: GenerationResult = {
         success: validation.valid,
         modifications,
