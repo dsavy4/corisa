@@ -14,6 +14,7 @@ import SchemaSummary from './components/SchemaSummary';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorToast from './components/ErrorToast';
 import ModPlanDrawer from './components/ModPlanDrawer';
+import ThemeToggleFab from './components/ThemeToggleFab';
 
 function App() {
   const { 
@@ -76,8 +77,10 @@ function App() {
                <div className="fade-in h-full">
                  {renderCurrentView()}
                </div>
-                               {/* Mod Plan Drawer FAB */}
-                <ModPlanDrawer />
+                                               {/* Mod Plan Drawer FAB */}
+                 <ModPlanDrawer />
+                 {/* Floating Theme Toggle */}
+                 <ThemeToggleFab />
              </main>
            </>
          )}
