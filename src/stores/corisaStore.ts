@@ -17,6 +17,10 @@ import {
   AIGenerationContext
 } from '../types/insights';
 import { generateYAMLFromPrompt, generateCodeFromSchema } from '../lib/ai-engine';
+import modPlanSchema from '../../schema/mod-plan.schema.json';
+import { SchemaValidator } from '../lib/schema-validator';
+import { buildPlanFromModifications } from '../lib/mod-plan-builder';
+import { applyModPlan } from '../lib/op-applier';
 
 interface CorisaStore {
   // State
@@ -39,6 +43,8 @@ interface CorisaStore {
   updateSchema: (schema: CorisaSchema) => void;
   processPrompt: (prompt: string) => Promise<void>;
   generateCode: (request: any) => Promise<CodeGenerationResult>;
+  applyModPlan: (plan: any) => { success: boolean; report: any };
+  applyModifications: (mods: Partial<CorisaSchema>) => { success: boolean; report: any };
   addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   setCurrentView: (view: 'landing' | 'chat' | 'yaml' | 'code' | 'preview' | 'context') => void;
   setLoading: (loading: boolean) => void;
@@ -177,7 +183,7 @@ export const useCorisaStore = create<CorisaStore>()(
         },
 
         processPrompt: async (prompt: string) => {
-          const { schema, addChatMessage, setLoading, setError, updateSchema, analyzeAIContext } = get();
+          const { schema, addChatMessage, setLoading, setError, updateSchema, analyzeAIContext, applyModifications } = get();
           
           try {
             setLoading(true);
@@ -196,10 +202,12 @@ export const useCorisaStore = create<CorisaStore>()(
             const result = await generateYAMLFromPrompt(prompt, schema);
             
             if (result.success) {
-              // Merge modifications with current schema
-              const updatedSchema = mergeSchemaModifications(schema, result.modifications);
-              updateSchema(updatedSchema);
-              
+              // Build and apply a plan from modifications for safety
+              const applyRes = applyModifications(result.modifications);
+              if (!applyRes.success) {
+                setError('Failed to apply plan');
+              }
+
               // Add AI response to chat with context
               addChatMessage({
                 type: 'ai',
@@ -239,6 +247,30 @@ export const useCorisaStore = create<CorisaStore>()(
         generateCode: async (request: any) => {
           const { schema } = get();
           return await generateCodeFromSchema(schema, request);
+        },
+
+        applyModPlan: (plan: any) => {
+          try {
+            const validator = new SchemaValidator(modPlanSchema as any);
+            const valid = validator.validateModPlan(plan);
+            if (!valid.valid) {
+              return { success: false, report: { errors: valid.errors } };
+            }
+            const { schema, report } = applyModPlan(get().schema, plan);
+            const referential = validator.checkReferentialIntegrity(schema);
+            if (!referential.valid) {
+              return { success: false, report: { errors: referential.errors } };
+            }
+            get().updateSchema(schema);
+            return { success: true, report };
+          } catch (e: any) {
+            return { success: false, report: { errors: [String(e?.message || e)] } };
+          }
+        },
+
+        applyModifications: (mods: Partial<CorisaSchema>) => {
+          const plan = buildPlanFromModifications(mods, get().schema);
+          return get().applyModPlan(plan);
         },
 
         addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
