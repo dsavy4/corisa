@@ -13,6 +13,7 @@ import CodeGenerator from './components/CodeGenerator';
 import SchemaSummary from './components/SchemaSummary';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorToast from './components/ErrorToast';
+import ModPlanDrawer from './components/ModPlanDrawer';
 
 function App() {
   const { 
@@ -57,27 +58,29 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark">
-      <div className="min-h-screen bg-background">
-        {/* Landing Page */}
-        {currentView === 'landing' && <LandingPage />}
-        
-        {/* Onboarding */}
-        {!isProjectLoaded && currentView !== 'landing' && <Onboarding />}
-        
-        {/* Main App */}
-        {isProjectLoaded && currentView !== 'landing' && (
-          <>
-            {/* Header */}
-            <Header />
-            
-            {/* Main Content */}
-            <main className="flex-1 h-[calc(100vh-80px)]">
-              <div className="fade-in h-full">
-                {renderCurrentView()}
-              </div>
-            </main>
-          </>
-        )}
+             <div className="min-h-screen bg-background">
+         {/* Landing Page */}
+         {currentView === 'landing' && <LandingPage />}
+         
+         {/* Onboarding */}
+         {!isProjectLoaded && currentView !== 'landing' && <Onboarding />}
+         
+         {/* Main App */}
+         {isProjectLoaded && currentView !== 'landing' && (
+           <>
+             {/* Header */}
+             <Header />
+             
+             {/* Main Content */}
+             <main className="flex-1 h-[calc(100vh-80px)] relative">
+               <div className="fade-in h-full">
+                 {renderCurrentView()}
+               </div>
+                               {/* Mod Plan Drawer FAB */}
+                <ModPlanDrawer />
+             </main>
+           </>
+         )}
 
         {/* Loading Overlay */}
         {isLoading && (
