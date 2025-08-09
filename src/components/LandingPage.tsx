@@ -8,14 +8,13 @@ import {
   Code, 
   Target, 
   Lightbulb,
-  Sparkles,
-  ArrowRight,
   CheckCircle,
   Zap,
   Shield,
   Users,
   BarChart3
 } from 'lucide-react';
+import PromptStarter from './PromptStarter';
 
 export default function LandingPage() {
   const { setCurrentView } = useCorisaStore();
@@ -121,23 +120,12 @@ export default function LandingPage() {
             </p>
             
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <Button 
-                size="lg"
-                onClick={() => setCurrentView('chat')}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                Start Building
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="border-white/20 text-white hover:bg-white/10 px-8 py-3 text-lg"
-              >
-                Watch Demo
-              </Button>
+            <div className="max-w-3xl mx-auto mt-8">
+              {/* Prompt-first starter */}
+              <div className="bg-white/5 backdrop-blur-md p-4 rounded-xl border border-white/20">
+                <div className="mb-3 text-left text-white/80 font-medium">Start by describing your product</div>
+                <PromptStarter />
+              </div>
             </div>
           </div>
         </div>
@@ -253,14 +241,12 @@ export default function LandingPage() {
             <p className="text-xl text-white/70">
               Join the future of AI-native development with structured context and transparent AI reasoning.
             </p>
-            <Button 
+                         <Button 
               size="lg"
               onClick={() => setCurrentView('chat')}
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
             >
-              <Sparkles className="w-5 h-5 mr-2" />
               Get Started Now
-              <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
         </div>

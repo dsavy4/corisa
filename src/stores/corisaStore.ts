@@ -64,6 +64,7 @@ interface CorisaStore {
   importInsightFiles: (content: string) => void;
   getInsightsForAI: () => string;
   analyzeAIContext: (prompt: string) => AIGenerationContext;
+  quickStartFromPrompt: (prompt: string) => Promise<void>;
 }
 
 const createInitialSchema = (): CorisaSchema => ({
@@ -562,6 +563,42 @@ export const useCorisaStore = create<CorisaStore>()(
 
           set({ aiGenerationContext: aiContext });
           return aiContext;
+        },
+
+        // NEW: Quick start from a single prompt
+        quickStartFromPrompt: async (prompt: string) => {
+          const { isProjectLoaded, createNewProject, addInsightFile, generateInsightFileContent, setCurrentView, processPrompt } = get();
+
+          // Ensure a project exists
+          if (!isProjectLoaded) {
+            createNewProject('New Project', prompt.slice(0, 2000), 'new');
+          }
+
+          // Seed essential insight files if missing
+          const requiredTypes: InsightFileType[] = ['project-overview', 'features-spec', 'current-progress'];
+          const existing = get().insightFiles;
+
+          for (const type of requiredTypes) {
+            if (!existing.find(f => f.type === type)) {
+              addInsightFile(type);
+            }
+          }
+
+          // Generate content for key insights using the prompt
+          const refreshed = get().insightFiles;
+          const overview = refreshed.find(f => f.type === 'project-overview');
+          const features = refreshed.find(f => f.type === 'features-spec');
+
+          if (overview) {
+            await generateInsightFileContent(overview.id, `Create a clear Project Overview using this description: ${prompt}`);
+          }
+          if (features) {
+            await generateInsightFileContent(features.id, `List features and user stories based on: ${prompt}`);
+          }
+
+          // Switch to chat and kick off AI planning for schema/code
+          setCurrentView('chat');
+          await processPrompt(prompt);
         }
       }),
       { 
