@@ -146,13 +146,13 @@ export class CorisaAIEngine {
     if (analysis.intent === 'create' && analysis.actions.length === 0 && wantsApp) {
       const basePages: Page[] = [
         {
-          id: 'home_page',
-          title: 'Home',
-          description: 'Welcome page',
-          route: '/',
+          id: 'getting_started_page',
+          title: 'Getting Started',
+          description: 'Welcome and next steps',
+          route: '/app',
           sections: ['getting_started_section'],
           layout: 'default',
-          metadata: { requiresAuth: false, permissions: [], breadcrumbs: ['Home'], seo: { title: 'Home', description: 'Welcome', keywords: ['home'] } }
+          metadata: { requiresAuth: false, permissions: [], breadcrumbs: ['Getting Started'], seo: { title: 'Getting Started', description: 'Welcome', keywords: ['getting-started'] } }
         },
         {
           id: 'properties_page',
