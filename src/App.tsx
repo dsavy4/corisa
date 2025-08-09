@@ -15,6 +15,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ErrorToast from './components/ErrorToast';
 import ModPlanDrawer from './components/ModPlanDrawer';
 import ThemeToggleFab from './components/ThemeToggleFab';
+import Wizard from './components/Wizard';
 
 function App() {
   const { 
@@ -36,7 +37,7 @@ function App() {
       case 'landing':
         return <LandingPage />;
       case 'chat':
-        return <ChatInterface />;
+        return <Wizard />;
       case 'context':
         return (
           <div className="flex h-full">
