@@ -26,19 +26,26 @@ export default function Onboarding() {
     importProject, 
     exportInsightFiles, 
     importInsightFiles,
-    isProjectLoaded 
+    isProjectLoaded,
+    quickStartFromPrompt,
+    setCurrentView 
   } = useCorisaStore();
 
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!projectName.trim() || !projectDescription.trim()) return;
     
     setIsCreating(true);
     createNewProject(projectName.trim(), projectDescription.trim(), 'new');
-    setIsCreating(false);
+    try {
+      await quickStartFromPrompt(projectDescription.trim());
+      setCurrentView('chat');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleImportProject = (event: React.ChangeEvent<HTMLInputElement>) => {
