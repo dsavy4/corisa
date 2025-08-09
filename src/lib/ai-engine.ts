@@ -142,9 +142,34 @@ export class CorisaAIEngine {
 
     // Handle authentication requests
     if (analysis.actions.includes('authentication')) {
+      const authPages = this.generateAuthPages();
+      const authSections: Section[] = [
+        {
+          id: 'login_form_section',
+          title: 'Login Form',
+          description: 'User login form',
+          type: 'form',
+          components: [],
+          layout: 'vertical',
+          metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+        },
+        {
+          id: 'register_form_section',
+          title: 'Register Form',
+          description: 'User registration form',
+          type: 'form',
+          components: [],
+          layout: 'vertical',
+          metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+        }
+      ];
       modifications.pages = [
         ...(currentSchema.pages || []),
-        ...this.generateAuthPages()
+        ...authPages
+      ];
+      modifications.sections = [
+        ...(currentSchema.sections || []),
+        ...authSections
       ];
       modifications.services = [
         ...(currentSchema.services || []),
@@ -160,9 +185,36 @@ export class CorisaAIEngine {
     if (analysis.actions.includes('crud')) {
       const entityName = this.extractEntityName(prompt);
       if (entityName) {
+        const pages = this.generateCRUDPages(entityName);
+        const listSectionId = `${entityName}_list_section`;
+        const detailSectionId = `${entityName}_detail_section`;
+        const sections: Section[] = [
+          {
+            id: listSectionId,
+            title: `${entityName} List`,
+            description: `List ${entityName}s`,
+            type: 'list',
+            components: [],
+            layout: 'vertical',
+            metadata: { responsive: true, collapsible: false, sortable: true, filterable: true, pagination: true }
+          },
+          {
+            id: detailSectionId,
+            title: `${entityName} Detail`,
+            description: `Detail view for ${entityName}`,
+            type: 'card',
+            components: [],
+            layout: 'vertical',
+            metadata: { responsive: true, collapsible: false, sortable: false, filterable: false, pagination: false }
+          }
+        ];
         modifications.pages = [
           ...(currentSchema.pages || []),
-          ...this.generateCRUDPages(entityName)
+          ...pages
+        ];
+        modifications.sections = [
+          ...(currentSchema.sections || []),
+          ...sections
         ];
         modifications.services = [
           ...(currentSchema.services || []),
@@ -638,8 +690,8 @@ export class CorisaAIEngine {
 
   private generateExplanation(analysis: PromptAnalysis, modifications: Partial<CorisaSchema>): string {
     const newEntities = this.extractNewEntities(modifications);
-    
-    return `Based on your request, I've analyzed the intent as "${analysis.intent}" and identified ${analysis.entities.length} entity types and ${analysis.actions.length} actions. I've generated ${newEntities.length} new entities to fulfill your requirements. The modifications maintain consistency with your existing application structure and follow established patterns.`;
+    const summary = `Intent: ${analysis.intent}. Entities: ${analysis.entities.join(', ') || 'none'}. Actions: ${analysis.actions.join(', ') || 'none'}.`;
+    return `${summary} Created/updated: ${newEntities.join(', ') || 'none'}.`;
   }
 }
 
