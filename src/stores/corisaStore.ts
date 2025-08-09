@@ -205,7 +205,8 @@ export const useCorisaStore = create<CorisaStore>()(
               // Build and apply a plan from modifications for safety
               const applyRes = applyModifications(result.modifications);
               if (!applyRes.success) {
-                setError('Failed to apply plan');
+                const details = applyRes.report?.errors ? String(applyRes.report.errors.join('; ')) : 'Unknown error';
+                setError('Failed to apply plan: ' + details);
               }
 
               // Add AI response to chat with context
