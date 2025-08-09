@@ -120,15 +120,15 @@ export default function LandingPage() {
               AI tools that actually understand what you're building and why.
             </p>
             
-            {/* Controls + Prompt */}
+            {/* Builder CTA */}
             <div className="max-w-4xl mx-auto mt-8 space-y-4">
               <div className="flex items-center justify-end">
                 {/* @ts-ignore */}
                 <ThemeToggle />
               </div>
-              <div className="bg-card border border-border p-4 rounded-xl">
-                <div className="mb-3 text-left text-muted-foreground font-medium">Start by describing your product</div>
-                <PromptStarter />
+              <div className="bg-card border border-border p-6 rounded-xl text-center">
+                <div className="mb-3 text-muted-foreground">Ready to build? Launch the Corisa Builder.</div>
+                <Button onClick={() => setCurrentView('chat')}>Launch Builder</Button>
               </div>
             </div>
           </div>
