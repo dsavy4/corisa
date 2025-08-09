@@ -53,6 +53,12 @@
   * {
     @apply border-border;
   }
+  input, textarea, select {
+    @apply border border-input;
+  }
+  input:focus, textarea:focus, select:focus {
+    @apply ring-2 ring-ring ring-offset-2;
+  }
   body {
     @apply bg-background text-foreground;
   }
