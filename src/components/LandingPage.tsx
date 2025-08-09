@@ -98,7 +98,7 @@ export default function LandingPage() {
         <div className="text-center space-y-8">
           {/* Logo and Title */}
           <div className="flex items-center justify-center space-x-4 mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl flex items-center justify-center">
+            <div className="w-20 h-20 bg-muted rounded-3xl flex items-center justify-center">
               <Brain className="w-10 h-10 text-white" />
             </div>
             <div className="text-left">
@@ -207,7 +207,7 @@ export default function LandingPage() {
                 onMouseEnter={() => setActiveFeature(index)}
               >
                 <CardHeader>
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-6">
                     {feature.icon}
                   </div>
                   <CardTitle className="text-white text-xl">{feature.title}</CardTitle>

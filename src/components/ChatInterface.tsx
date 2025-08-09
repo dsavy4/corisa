@@ -90,7 +90,7 @@ export default function ChatInterface() {
       {chatHistory.length === 0 && (
         <div className="bg-card border border-border rounded-lg p-8 mb-8">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-2xl font-bold mb-2">
@@ -303,7 +303,7 @@ export default function ChatInterface() {
         {isLoading && (
           <div className="bg-card border border-border rounded-lg p-4 slide-up">
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div className="flex items-center space-x-2">
